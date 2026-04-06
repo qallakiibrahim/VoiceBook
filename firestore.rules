@@ -85,14 +85,20 @@ service cloud.firestore {
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['id', 'userId', 'title', 'author', 'type', 'format', 'url', 'coverColor', 'progress', 'lastPosition', 'content', 'createdAt']) &&
+      return hasOnlyAllowedFields(['id', 'userId', 'title', 'author', 'type', 'format', 'url', 'storagePath', 'coverColor', 'progress', 'lastPosition', 'content', 'createdAt', 'bookmarks']) &&
              data.id is string && data.id.size() > 0 &&
              data.userId == request.auth.uid &&
              data.title is string && data.title.size() > 0 && data.title.size() < 255 &&
              data.type in ['audio', 'document'] &&
              (data.author == null || (data.author is string && data.author.size() < 255)) &&
              (data.url == null || isValidUrl(data.url)) &&
-             (data.progress == null || (data.progress is number && data.progress >= 0 && data.progress <= 100));
+             (data.storagePath == null || data.storagePath is string) &&
+             (data.progress == null || (data.progress is number && data.progress >= 0 && data.progress <= 100)) &&
+             (data.lastPosition == null || data.lastPosition is number) &&
+             (data.content == null || data.content is string) &&
+             (data.format == null || data.format is string) &&
+             (data.createdAt == null || data.createdAt is string) &&
+             (data.bookmarks == null || data.bookmarks is list);
     }
 
     function isValidBookmark(data) {

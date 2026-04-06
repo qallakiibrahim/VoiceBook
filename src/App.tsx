@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Component } from "react";
 import { ChevronLeft, LogOut, LogIn, Music } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/src/lib/utils";
@@ -12,7 +12,7 @@ import { useLibrary } from "./hooks/useLibrary";
 import { useTTS } from "./hooks/useTTS";
 
 // Firebase
-import { auth, loginWithGoogle, logout, User } from "./firebase";
+import { auth, loginWithGoogle, logout, User, db, doc, setDoc, getDoc } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 
 // Components
@@ -20,6 +20,47 @@ import { Sidebar } from "./components/Sidebar";
 import { Library } from "./components/Library";
 import { Player } from "./components/Player";
 import { DragOverlay } from "./components/DragOverlay";
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false, error: null };
+
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen bg-dark-bg flex flex-col items-center justify-center p-8 text-center">
+          <h1 className="text-2xl font-bold mb-4 text-white">Ett fel uppstod</h1>
+          <pre className="bg-black/40 p-4 rounded text-xs text-red-400 max-w-full overflow-auto mb-4">
+            {this.state.error?.message}
+          </pre>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-spotify-green text-black rounded-full font-bold"
+          >
+            Ladda om sidan
+          </button>
+        </div>
+      );
+    }
+    return (this as any).props.children;
+  }
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -37,7 +78,27 @@ export default function App() {
 
   // Auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Ensure user document exists in Firestore
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (!userSnap.exists()) {
+            await setDoc(userRef, {
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+              createdAt: new Date().toISOString(),
+              role: 'user'
+            });
+          }
+        } catch (err) {
+          console.error("Error ensuring user document:", err);
+        }
+      }
       setUser(user);
       setIsAuthLoading(false);
     });
@@ -54,7 +115,8 @@ export default function App() {
     removeBook,
     updateBookProgress,
     addBookmark,
-    removeBookmark
+    removeBookmark,
+    error: libraryError
   } = useLibrary(user);
 
   // Derive activeBook from books array to keep it in sync
@@ -209,8 +271,9 @@ export default function App() {
   }
 
   return (
-    <div 
-      className="flex h-screen bg-dark-bg text-white overflow-hidden font-sans relative"
+    <ErrorBoundary>
+      <div 
+        className="flex h-screen bg-dark-bg text-white overflow-hidden font-sans relative"
       onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
@@ -270,6 +333,12 @@ export default function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-8 pb-32">
+          {libraryError && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-center justify-between">
+              <span>{libraryError}</span>
+              <button onClick={() => window.location.reload()} className="underline font-bold">Försök igen</button>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {view === "library" ? (
               <Library 
@@ -323,5 +392,6 @@ export default function App() {
         />
       </main>
     </div>
+    </ErrorBoundary>
   );
 }

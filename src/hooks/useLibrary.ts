@@ -17,13 +17,66 @@ import {
   uploadBytes,
   getDownloadURL,
   deleteObject,
-  storage
+  storage,
+  auth
 } from "../firebase";
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+    tenantId: string | null | undefined;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 export const useLibrary = (user: User | null) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   // Load books from Firestore when user changes
   useEffect(() => {
@@ -32,6 +85,7 @@ export const useLibrary = (user: User | null) => {
       return;
     }
 
+    const path = `users/${user.uid}/books`;
     const booksRef = collection(db, "users", user.uid, "books");
     const q = query(booksRef, orderBy("createdAt", "desc"));
 
@@ -42,16 +96,23 @@ export const useLibrary = (user: User | null) => {
         booksData.push({ ...data, id: doc.id });
       });
       setBooks(booksData);
-    }, (error) => {
-      console.error("Error fetching books:", error);
+      setError(null);
+    }, (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Kunde inte hämta biblioteket: ${msg}`);
+      console.error("Error fetching books:", err);
     });
 
     return () => unsubscribe();
   }, [user]);
 
   const handleFileUpload = async (files: FileList | File[]) => {
-    if (!user) return;
+    if (!user) {
+      setError("Du måste vara inloggad för att ladda upp böcker.");
+      return;
+    }
     const fileList = Array.from(files);
+    setError(null);
     
     for (const file of fileList) {
       setIsExtracting(true);
@@ -71,10 +132,13 @@ export const useLibrary = (user: User | null) => {
         // 2. Upload file to Firebase Storage
         const bookId = Math.random().toString(36).substr(2, 9);
         const storageRef = ref(storage, `users/${user.uid}/books/${bookId}_${file.name}`);
+        
+        console.log("Uploading to storage:", storageRef.fullPath);
         const uploadResult = await uploadBytes(storageRef, file);
         const downloadUrl = await getDownloadURL(uploadResult.ref);
 
         // 3. Save metadata to Firestore
+        const path = `users/${user.uid}/books/${bookId}`;
         const newBook: any = {
           id: bookId,
           userId: user.uid,
@@ -82,8 +146,8 @@ export const useLibrary = (user: User | null) => {
           author: "Okänd författare",
           type: isAudio ? "audio" : "document",
           format: file.name.split(".").pop()?.toUpperCase() || "FIL",
-          url: downloadUrl, // Use the permanent download URL
-          storagePath: storageRef.fullPath, // Store path for deletion
+          url: downloadUrl,
+          storagePath: storageRef.fullPath,
           coverColor: COVER_COLORS[Math.floor(Math.random() * COVER_COLORS.length)],
           progress: 0,
           content: content,
@@ -93,7 +157,10 @@ export const useLibrary = (user: User | null) => {
         };
 
         await setDoc(doc(db, "users", user.uid, "books", bookId), newBook);
+        URL.revokeObjectURL(blobUrl);
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(`Ett fel uppstod vid uppladdning: ${msg}`);
         console.error("Error processing file:", err);
       } finally {
         setIsExtracting(false);
@@ -103,6 +170,7 @@ export const useLibrary = (user: User | null) => {
 
   const removeBook = async (id: string) => {
     if (!user) return;
+    const path = `users/${user.uid}/books/${id}`;
     try {
       const book = books.find(b => b.id === id);
       if (book?.storagePath) {
@@ -111,12 +179,13 @@ export const useLibrary = (user: User | null) => {
       }
       await deleteDoc(doc(db, "users", user.uid, "books", id));
     } catch (err) {
-      console.error("Error removing book:", err);
+      handleFirestoreError(err, OperationType.DELETE, path);
     }
   };
 
   const updateBookProgress = async (id: string, progress: number, lastPosition?: number) => {
     if (!user) return;
+    const path = `users/${user.uid}/books/${id}`;
     try {
       const bookRef = doc(db, "users", user.uid, "books", id);
       await updateDoc(bookRef, {
@@ -124,12 +193,13 @@ export const useLibrary = (user: User | null) => {
         lastPosition: lastPosition ?? 0
       });
     } catch (err) {
-      console.error("Error updating progress:", err);
+      handleFirestoreError(err, OperationType.UPDATE, path);
     }
   };
 
   const addBookmark = async (bookId: string, label: string, position: number) => {
     if (!user) return;
+    const path = `users/${user.uid}/books/${bookId}`;
     try {
       const book = books.find(b => b.id === bookId);
       if (!book) return;
@@ -147,12 +217,13 @@ export const useLibrary = (user: User | null) => {
         bookmarks: [...(book.bookmarks || []), newBookmark]
       });
     } catch (err) {
-      console.error("Error adding bookmark:", err);
+      handleFirestoreError(err, OperationType.UPDATE, path);
     }
   };
 
   const removeBookmark = async (bookId: string, bookmarkId: string) => {
     if (!user) return;
+    const path = `users/${user.uid}/books/${bookId}`;
     try {
       const book = books.find(b => b.id === bookId);
       if (!book) return;
@@ -162,7 +233,7 @@ export const useLibrary = (user: User | null) => {
         bookmarks: (book.bookmarks || []).filter(bm => bm.id !== bookmarkId)
       });
     } catch (err) {
-      console.error("Error removing bookmark:", err);
+      handleFirestoreError(err, OperationType.UPDATE, path);
     }
   };
 
@@ -180,6 +251,7 @@ export const useLibrary = (user: User | null) => {
     removeBook,
     updateBookProgress,
     addBookmark,
-    removeBookmark
+    removeBookmark,
+    error
   };
 };
