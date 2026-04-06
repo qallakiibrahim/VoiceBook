@@ -107,12 +107,19 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
   }, [activeBook?.id, activeBook?.content, activeBook?.type, playbackRate, setIsPlaying]);
 
   // Handle chapter changes and play/pause state for documents
+  const lastPlayedRef = useRef<{ id: string, chapter: number } | null>(null);
+
   useEffect(() => {
     if (activeBook?.type === "document") {
       if (isPlaying) {
-        playChapter(currentChapter);
+        // Only trigger playChapter if the book or chapter actually changed
+        if (lastPlayedRef.current?.id !== activeBook.id || lastPlayedRef.current?.chapter !== currentChapter) {
+          playChapter(currentChapter);
+          lastPlayedRef.current = { id: activeBook.id, chapter: currentChapter };
+        }
       } else {
         window.speechSynthesis.cancel();
+        lastPlayedRef.current = null;
       }
     }
     return () => {

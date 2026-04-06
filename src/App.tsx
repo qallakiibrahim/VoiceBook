@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, Component } from "react";
+import React, { useState, useRef, useEffect, Component, useCallback } from "react";
 import { LogIn, Music } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/src/lib/utils";
@@ -150,6 +150,72 @@ export default function App() {
     };
   }, [sleepTimer, isPlaying]);
 
+  const togglePlay = useCallback(() => {
+    if (!activeBook) return;
+
+    if (activeBook.type === "audio") {
+      if (isPlaying) {
+        audioRef.current?.pause();
+      } else {
+        audioRef.current?.play();
+      }
+      setIsPlaying(!isPlaying);
+    } else {
+      setIsPlaying(!isPlaying);
+    }
+  }, [activeBook?.id, activeBook?.type, isPlaying]);
+
+  const skipForward = useCallback(() => {
+    if (activeBook?.type === "audio" && audioRef.current) {
+      audioRef.current.currentTime += 15;
+    } else if (activeBook?.type === "document") {
+      const chapters = getChapters(activeBook.content || "");
+      if (currentChapter < chapters.length - 1) {
+        setCurrentChapter(prev => prev + 1);
+      }
+    }
+  }, [activeBook?.id, activeBook?.type, activeBook?.content, currentChapter, setCurrentChapter]);
+
+  const skipBackward = useCallback(() => {
+    if (activeBook?.type === "audio" && audioRef.current) {
+      audioRef.current.currentTime -= 15;
+    } else if (activeBook?.type === "document") {
+      if (currentChapter > 0) {
+        setCurrentChapter(prev => prev - 1);
+      }
+    }
+  }, [activeBook?.id, activeBook?.type, currentChapter, setCurrentChapter]);
+
+  const jumpToPosition = useCallback((position: number) => {
+    if (activeBook?.type === "audio" && audioRef.current) {
+      audioRef.current.currentTime = position;
+    } else if (activeBook?.type === "document") {
+      setCurrentChapter(position);
+    }
+  }, [activeBook?.id, activeBook?.type, setCurrentChapter]);
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current && activeBook?.type === "audio") {
+      const current = audioRef.current.currentTime;
+      const duration = audioRef.current.duration;
+      const p = (current / duration) * 100;
+      setProgress(p);
+      updateBookProgress(activeBook.id, p, current);
+    }
+  };
+
+  const openBook = (book: Book) => {
+    if (isPlaying) {
+      audioRef.current?.pause();
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+    }
+    setActiveBookId(book.id);
+    setView("library");
+    setProgress(book.progress);
+    setCurrentChapter(0);
+  };
+
   // Media Session API for lock screen controls
   useEffect(() => {
     if ('mediaSession' in navigator && activeBook) {
@@ -169,73 +235,26 @@ export default function App() {
       navigator.mediaSession.setActionHandler('seekbackward', skipBackward);
       navigator.mediaSession.setActionHandler('seekforward', skipForward);
     }
-  }, [activeBook, isPlaying]); // Re-sync when book or play state changes
+  }, [activeBook?.id, activeBook?.title, activeBook?.author, isPlaying, togglePlay, skipForward, skipBackward]);
 
-  const togglePlay = () => {
-    if (!activeBook) return;
-
-    if (activeBook.type === "audio") {
-      if (isPlaying) {
-        audioRef.current?.pause();
-      } else {
-        audioRef.current?.play();
-      }
-      setIsPlaying(!isPlaying);
-    } else {
-      setIsPlaying(!isPlaying);
+  // Document Progress Tracking
+  useEffect(() => {
+    if (activeBook?.type === "document" && activeBook.content && isPlaying) {
+      const chapters = getChapters(activeBook.content);
+      const totalChapters = chapters.length;
+      const chapterText = chapters[currentChapter] || "";
+      const chapterProgress = chapterText.length > 0 ? (currentCharIndex / chapterText.length) : 0;
+      const totalProgress = ((currentChapter + chapterProgress) / totalChapters) * 100;
+      
+      setProgress(totalProgress);
+      
+      // Update DB periodically
+      const timeout = setTimeout(() => {
+        updateBookProgress(activeBook.id, totalProgress, currentChapter);
+      }, 2000);
+      return () => clearTimeout(timeout);
     }
-  };
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current && activeBook?.type === "audio") {
-      const current = audioRef.current.currentTime;
-      const duration = audioRef.current.duration;
-      const p = (current / duration) * 100;
-      setProgress(p);
-      updateBookProgress(activeBook.id, p, current);
-    }
-  };
-
-  const openBook = (book: Book) => {
-    if (isPlaying) {
-      audioRef.current?.pause();
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-    }
-    setActiveBookId(book.id);
-    setView("player");
-    setProgress(book.progress);
-    setCurrentChapter(0);
-  };
-
-  const skipForward = () => {
-    if (activeBook?.type === "audio" && audioRef.current) {
-      audioRef.current.currentTime += 15;
-    } else if (activeBook?.type === "document") {
-      const chapters = getChapters(activeBook.content || "");
-      if (currentChapter < chapters.length - 1) {
-        setCurrentChapter(prev => prev + 1);
-      }
-    }
-  };
-
-  const skipBackward = () => {
-    if (activeBook?.type === "audio" && audioRef.current) {
-      audioRef.current.currentTime -= 15;
-    } else if (activeBook?.type === "document") {
-      if (currentChapter > 0) {
-        setCurrentChapter(prev => prev - 1);
-      }
-    }
-  };
-
-  const jumpToPosition = (position: number) => {
-    if (activeBook?.type === "audio" && audioRef.current) {
-      audioRef.current.currentTime = position;
-    } else if (activeBook?.type === "document") {
-      setCurrentChapter(position);
-    }
-  };
+  }, [currentChapter, currentCharIndex, activeBook?.id, activeBook?.type, activeBook?.content, isPlaying]);
 
   if (isAuthLoading) {
     return (

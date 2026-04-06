@@ -69,6 +69,23 @@ export const Player: React.FC<PlayerProps> = ({
     setTimeout(() => setShowSavedFeedback(false), 2000);
   };
 
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return "0:00";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getDocumentProgress = () => {
+    if (activeBook.type !== "document" || !activeBook.content) return "0:00";
+    const chapters = getChapters(activeBook.content);
+    const text = chapters[currentChapter] || "";
+    const progress = text.length > 0 ? (currentCharIndex / text.length) * 100 : 0;
+    return `${Math.round(progress)}% av kapitel`;
+  };
+
   return (
     <motion.div 
       key="player"
@@ -202,8 +219,8 @@ export const Player: React.FC<PlayerProps> = ({
                 />
               </div>
               <div className="flex justify-between text-xs font-bold text-gray-500">
-                <span>0:00</span>
-                <span>{activeBook.type === "audio" ? "42:15" : `Kapitel ${currentChapter + 1}`}</span>
+                <span>{activeBook.type === "audio" ? formatTime(activeBook.lastPosition || 0) : getDocumentProgress()}</span>
+                <span>{activeBook.type === "audio" ? "Ljudbok" : `Kapitel ${currentChapter + 1}`}</span>
               </div>
             </div>
 
