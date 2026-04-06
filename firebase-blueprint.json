@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Book": {
+      "title": "Book",
+      "description": "Information about a book in the library",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "type": { "type": "string", "enum": ["audio", "document"] },
+        "format": { "type": "string" },
+        "url": { "type": "string" },
+        "coverColor": { "type": "string" },
+        "progress": { "type": "number" },
+        "lastPosition": { "type": "number" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "type"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "A bookmark within a book",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "userId": { "type": "string" },
+        "label": { "type": "string" },
+        "position": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "bookId", "userId", "label", "position", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/users/{userId}/books/{bookId}": {
+      "schema": "Book",
+      "description": "Books belonging to a user"
+    },
+    "/users/{userId}/books/{bookId}/bookmarks/{bookmarkId}": {
+      "schema": "Bookmark",
+      "description": "Bookmarks for a specific book"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronLeft } from "lucide-react";
-import { AnimatePresence } from "motion/react";
+import { ChevronLeft, LogOut, LogIn, Music } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/src/lib/utils";
 
 // Types & Constants
@@ -11,6 +11,10 @@ import { getChapters } from "./lib/extraction";
 import { useLibrary } from "./hooks/useLibrary";
 import { useTTS } from "./hooks/useTTS";
 
+// Firebase
+import { auth, loginWithGoogle, logout, User } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+
 // Components
 import { Sidebar } from "./components/Sidebar";
 import { Library } from "./components/Library";
@@ -18,6 +22,8 @@ import { Player } from "./components/Player";
 import { DragOverlay } from "./components/DragOverlay";
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [view, setView] = useState<ViewType>("library");
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -28,6 +34,15 @@ export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const {
     books,
@@ -40,7 +55,7 @@ export default function App() {
     updateBookProgress,
     addBookmark,
     removeBookmark
-  } = useLibrary();
+  } = useLibrary(user);
 
   // Derive activeBook from books array to keep it in sync
   const activeBook = books.find(b => b.id === activeBookId) || null;
@@ -158,6 +173,41 @@ export default function App() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="h-screen bg-dark-bg flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-spotify-green border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="h-screen bg-dark-bg flex flex-col items-center justify-center p-8 text-center">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md space-y-8"
+        >
+          <div className="w-24 h-24 bg-spotify-green rounded-3xl flex items-center justify-center mx-auto shadow-[0_0_50px_rgba(30,215,96,0.3)]">
+            <Music className="w-12 h-12 text-black" />
+          </div>
+          <div>
+            <h1 className="text-5xl font-black tracking-tighter mb-4">VoiceBook</h1>
+            <p className="text-gray-400 text-lg">Ditt personliga bibliotek, synkroniserat över alla dina enheter.</p>
+          </div>
+          <button 
+            onClick={loginWithGoogle}
+            className="w-full py-4 bg-white text-black rounded-full font-bold text-lg hover:scale-105 transition-transform flex items-center justify-center gap-3 shadow-xl"
+          >
+            <LogIn className="w-6 h-6" />
+            Logga in med Google
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="flex h-screen bg-dark-bg text-white overflow-hidden font-sans relative"
@@ -183,12 +233,14 @@ export default function App() {
       <main className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-b from-white/5 to-dark-bg">
         <header className="h-16 flex items-center justify-between px-8 z-10">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setView("library")}
-              className="p-2 bg-black/40 rounded-full hover:bg-black/60 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            {view === "player" && (
+              <button 
+                onClick={() => setView("library")}
+                className="p-2 bg-black/40 rounded-full hover:bg-black/60 transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
           </div>
           
           <div className="flex items-center gap-4">
@@ -198,8 +250,21 @@ export default function App() {
                 EXTRAHERAR TEXT...
               </div>
             )}
-            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-xs">
-              IQ
+            <div className="flex items-center gap-3 bg-black/40 p-1.5 pr-4 rounded-full border border-white/5">
+              <img 
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
+                alt={user.displayName || ""} 
+                className="w-8 h-8 rounded-full"
+                referrerPolicy="no-referrer"
+              />
+              <span className="text-xs font-bold truncate max-w-[100px]">{user.displayName}</span>
+              <button 
+                onClick={logout}
+                className="p-1 hover:text-red-500 transition-colors"
+                title="Logga ut"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </header>
