@@ -129,16 +129,37 @@ export const useLibrary = (user: User | null) => {
         if (isEPUB) content = await extractTextFromEPUB(blobUrl);
         if (file.type === "text/plain") content = await file.text();
 
-        // 2. Upload file to Firebase Storage
-        const bookId = Math.random().toString(36).substr(2, 9);
-        const storageRef = ref(storage, `users/${user.uid}/books/${bookId}_${file.name}`);
-        
-        console.log("Uploading to storage:", storageRef.fullPath);
-        const uploadResult = await uploadBytes(storageRef, file);
-        const downloadUrl = await getDownloadURL(uploadResult.ref);
+        let downloadUrl = "";
+        let storagePath = "";
+
+        // 2. Upload file to Firebase Storage ONLY for audio
+        // Documents are saved directly to Firestore as text to avoid CORS/Upgrade issues
+        if (isAudio) {
+          const bookId = Math.random().toString(36).substr(2, 9);
+          const storageRef = ref(storage, `users/${user.uid}/books/${bookId}_${file.name}`);
+          
+          console.log("Uploading audio to storage:", storageRef.fullPath);
+          try {
+            const uploadResult = await uploadBytes(storageRef, file);
+            downloadUrl = await getDownloadURL(uploadResult.ref);
+            storagePath = storageRef.fullPath;
+          } catch (storageErr: any) {
+            console.error("Storage upload failed:", storageErr);
+            if (storageErr.code === 'storage/unauthorized' || storageErr.message.includes('CORS')) {
+              throw new Error("Firebase Storage är inte konfigurerat. Gå till Firebase Console och aktivera Storage för att ladda upp ljudfiler.");
+            }
+            throw storageErr;
+          }
+        } else {
+          // For documents, we use the blobUrl for the current session if needed,
+          // but we don't persist it to Firestore since it's temporary.
+          // The reader will use the 'content' field.
+          downloadUrl = ""; 
+          storagePath = "";
+        }
 
         // 3. Save metadata to Firestore
-        const path = `users/${user.uid}/books/${bookId}`;
+        const bookId = Math.random().toString(36).substr(2, 9);
         const newBook: any = {
           id: bookId,
           userId: user.uid,
@@ -147,7 +168,7 @@ export const useLibrary = (user: User | null) => {
           type: isAudio ? "audio" : "document",
           format: file.name.split(".").pop()?.toUpperCase() || "FIL",
           url: downloadUrl,
-          storagePath: storageRef.fullPath,
+          storagePath: storagePath,
           coverColor: COVER_COLORS[Math.floor(Math.random() * COVER_COLORS.length)],
           progress: 0,
           content: content,
