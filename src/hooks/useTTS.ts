@@ -95,10 +95,11 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
     };
 
     utterance.onerror = (e) => {
-      if (e.error !== 'interrupted' && e.error !== 'canceled') {
-        console.error("TTS Error:", e);
-        setIsPlaying(false);
-      }
+      // Aggressively ignore common interruption/cancellation events
+      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      
+      console.error("TTS Error:", e.error, e);
+      setIsPlaying(false);
     };
 
     utteranceRef.current = utterance;
