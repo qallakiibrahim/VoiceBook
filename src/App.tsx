@@ -36,7 +36,9 @@ export default function App() {
     setSearchQuery,
     handleFileUpload,
     removeBook,
-    updateBookProgress
+    updateBookProgress,
+    addBookmark,
+    removeBookmark
   } = useLibrary();
 
   const {
@@ -144,6 +146,14 @@ export default function App() {
     }
   };
 
+  const jumpToPosition = (position: number) => {
+    if (activeBook?.type === "audio" && audioRef.current) {
+      audioRef.current.currentTime = position;
+    } else if (activeBook?.type === "document") {
+      setCurrentChapter(position);
+    }
+  };
+
   return (
     <div 
       className="flex h-screen bg-dark-bg text-white overflow-hidden font-sans relative"
@@ -219,6 +229,9 @@ export default function App() {
                 skipBackward={skipBackward}
                 textContainerRef={textContainerRef}
                 activeWordRef={activeWordRef}
+                addBookmark={addBookmark}
+                removeBookmark={removeBookmark}
+                onJumpToPosition={jumpToPosition}
               />
             )}
           </AnimatePresence>

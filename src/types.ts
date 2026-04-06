@@ -11,6 +11,14 @@ export interface Book {
   progress: number;
   content?: string;
   lastPosition?: number;
+  bookmarks?: Bookmark[];
+}
+
+export interface Bookmark {
+  id: string;
+  label: string;
+  position: number; // chapter index for docs, seconds for audio
+  timestamp: number;
 }
 
 export type ViewType = "library" | "player";

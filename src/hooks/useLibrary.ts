@@ -77,6 +77,30 @@ export const useLibrary = () => {
     ));
   };
 
+  const addBookmark = (bookId: string, label: string, position: number) => {
+    setBooks(prev => prev.map(b => {
+      if (b.id === bookId) {
+        const newBookmark = {
+          id: Math.random().toString(36).substr(2, 9),
+          label,
+          position,
+          timestamp: Date.now()
+        };
+        return { ...b, bookmarks: [...(b.bookmarks || []), newBookmark] };
+      }
+      return b;
+    }));
+  };
+
+  const removeBookmark = (bookId: string, bookmarkId: string) => {
+    setBooks(prev => prev.map(b => {
+      if (b.id === bookId) {
+        return { ...b, bookmarks: (b.bookmarks || []).filter(bm => bm.id !== bookmarkId) };
+      }
+      return b;
+    }));
+  };
+
   const filteredBooks = books.filter(b => 
     b.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -89,6 +113,8 @@ export const useLibrary = () => {
     setSearchQuery,
     handleFileUpload,
     removeBook,
-    updateBookProgress
+    updateBookProgress,
+    addBookmark,
+    removeBookmark
   };
 };
