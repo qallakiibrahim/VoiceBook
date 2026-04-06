@@ -104,7 +104,7 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
 
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, [activeBook, playbackRate, setIsPlaying]);
+  }, [activeBook?.id, activeBook?.content, activeBook?.type, playbackRate, setIsPlaying]);
 
   // Handle chapter changes and play/pause state for documents
   useEffect(() => {
