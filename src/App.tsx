@@ -124,6 +124,14 @@ export default function App() {
   // Derive activeBook from books array to keep it in sync
   const activeBook = books.find(b => b.id === activeBookId) || null;
 
+  // Auto-return to library if active book is deleted
+  useEffect(() => {
+    if (view === "player" && activeBookId && !activeBook) {
+      setView("library");
+      setActiveBookId(null);
+    }
+  }, [view, activeBookId, activeBook]);
+
   const {
     playbackRate,
     currentChapter,

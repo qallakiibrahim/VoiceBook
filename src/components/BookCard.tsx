@@ -48,7 +48,10 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onOpen, onRemove }) =>
           <p className="text-xs text-gray-400 font-medium truncate">{book.author}</p>
         </div>
         <button 
-          onClick={(e) => onRemove(e, book.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(e, book.id);
+          }}
           className="p-1.5 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
           title="Ta bort från bibliotek"
         >
