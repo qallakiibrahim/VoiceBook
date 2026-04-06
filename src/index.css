@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-spotify-green: #1db954;
+  --color-dark-bg: #121212;
+  --color-card-bg: #181818;
+  --color-hover-bg: #282828;
+}
+
+@layer base {
+  body {
+    @apply bg-dark-bg text-white antialiased;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
