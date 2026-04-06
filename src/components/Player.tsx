@@ -47,15 +47,24 @@ export const Player: React.FC<PlayerProps> = ({
   removeBookmark,
   onJumpToPosition
 }) => {
-  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showSavedFeedback, setShowSavedFeedback] = useState(false);
 
   const handleAddBookmark = () => {
     const position = activeBook.type === "document" ? currentChapter : (activeBook.lastPosition || 0);
+    
+    // Check for duplicate
+    const isDuplicate = activeBook.bookmarks?.some(bm => bm.position === position);
+    if (isDuplicate) return;
+
     const label = activeBook.type === "document" 
       ? `Kapitel ${currentChapter + 1}` 
       : new Date((activeBook.lastPosition || 0) * 1000).toISOString().substr(11, 8);
     
     addBookmark(activeBook.id, label, position);
+    
+    // Show feedback
+    setShowSavedFeedback(true);
+    setTimeout(() => setShowSavedFeedback(false), 2000);
   };
 
   return (
@@ -151,13 +160,28 @@ export const Player: React.FC<PlayerProps> = ({
                   {playbackRate}x hastighet
                 </button>
               </div>
-              <button 
-                onClick={handleAddBookmark}
-                className="hover:text-spotify-green transition-colors p-2 bg-white/5 rounded-full"
-                title="Sätt bokmärke"
-              >
-                <BookmarkIcon className="w-5 h-5" />
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={handleAddBookmark}
+                  className="hover:text-spotify-green transition-colors p-2 bg-white/5 rounded-full"
+                  title="Sätt bokmärke"
+                >
+                  <BookmarkIcon className="w-5 h-5" />
+                </button>
+                
+                <AnimatePresence>
+                  {showSavedFeedback && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                      animate={{ opacity: 1, y: -40, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap bg-spotify-green text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none"
+                    >
+                      Bokmärke sparat!
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             <div className="space-y-2">

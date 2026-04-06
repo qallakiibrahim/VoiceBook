@@ -19,7 +19,7 @@ import { DragOverlay } from "./components/DragOverlay";
 
 export default function App() {
   const [view, setView] = useState<ViewType>("library");
-  const [activeBook, setActiveBook] = useState<Book | null>(null);
+  const [activeBookId, setActiveBookId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
@@ -30,6 +30,7 @@ export default function App() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
+    books,
     filteredBooks,
     isExtracting,
     searchQuery,
@@ -40,6 +41,9 @@ export default function App() {
     addBookmark,
     removeBookmark
   } = useLibrary();
+
+  // Derive activeBook from books array to keep it in sync
+  const activeBook = books.find(b => b.id === activeBookId) || null;
 
   const {
     playbackRate,
@@ -119,7 +123,7 @@ export default function App() {
       window.speechSynthesis.cancel();
       setIsPlaying(false);
     }
-    setActiveBook(book);
+    setActiveBookId(book.id);
     setView("player");
     setProgress(book.progress);
     setCurrentChapter(0);
