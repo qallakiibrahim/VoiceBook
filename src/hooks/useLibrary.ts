@@ -154,8 +154,8 @@ export const useLibrary = (user: User | null) => {
           // For documents, we use the blobUrl for the current session if needed,
           // but we don't persist it to Firestore since it's temporary.
           // The reader will use the 'content' field.
-          downloadUrl = ""; 
-          storagePath = "";
+          downloadUrl = null as any; 
+          storagePath = null as any;
         }
 
         // 3. Save metadata to Firestore
