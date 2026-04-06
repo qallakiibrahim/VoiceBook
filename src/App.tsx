@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, Component } from "react";
-import { ChevronLeft, LogOut, LogIn, Music } from "lucide-react";
+import { LogIn, Music } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/src/lib/utils";
 
@@ -16,7 +16,7 @@ import { auth, loginWithGoogle, logout, User, db, doc, setDoc, getDoc } from "./
 import { onAuthStateChanged } from "firebase/auth";
 
 // Components
-import { Sidebar } from "./components/Sidebar";
+import { Header } from "./components/Header";
 import { Library } from "./components/Library";
 import { Player } from "./components/Player";
 import { DragOverlay } from "./components/DragOverlay";
@@ -111,6 +111,8 @@ export default function App() {
     isExtracting,
     searchQuery,
     setSearchQuery,
+    filter,
+    setFilter,
     handleFileUpload,
     removeBook,
     updateBookProgress,
@@ -273,106 +275,70 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div 
-        className="flex h-screen bg-dark-bg text-white overflow-hidden font-sans relative"
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        className="flex flex-col h-screen bg-dark-bg text-white overflow-hidden font-sans relative"
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsDragging(false);
+          }
+        }}
+        onDrop={(e) => {
+          handleFileUpload(e.dataTransfer.files);
           setIsDragging(false);
-        }
-      }}
-      onDrop={(e) => {
-        handleFileUpload(e.dataTransfer.files);
-        setIsDragging(false);
-      }}
-    >
-      <DragOverlay isDragging={isDragging} />
+        }}
+      >
+        <DragOverlay isDragging={isDragging} />
 
-      <Sidebar 
-        view={view} 
-        setView={setView} 
-        onAddBooks={() => fileInputRef.current?.click()} 
-      />
+        <Header 
+          user={user}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filter={filter}
+          setFilter={setFilter}
+          onAddBooks={() => fileInputRef.current?.click()}
+        />
 
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-b from-white/5 to-dark-bg">
-        <header className="h-16 flex items-center justify-between px-8 z-10">
-          <div className="flex items-center gap-4">
-            {view === "player" && (
-              <button 
-                onClick={() => setView("library")}
-                className="p-2 bg-black/40 rounded-full hover:bg-black/60 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {isExtracting && (
-              <div className="flex items-center gap-2 text-xs font-bold text-spotify-green animate-pulse">
-                <div className="w-2 h-2 bg-spotify-green rounded-full" />
-                EXTRAHERAR TEXT...
-              </div>
-            )}
-            <div className="flex items-center gap-3 bg-black/40 p-1.5 pr-4 rounded-full border border-white/5">
-              <img 
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
-                alt={user.displayName || ""} 
-                className="w-8 h-8 rounded-full"
-                referrerPolicy="no-referrer"
-              />
-              <span className="text-xs font-bold truncate max-w-[100px]">{user.displayName}</span>
-              <button 
-                onClick={logout}
-                className="p-1 hover:text-red-500 transition-colors"
-                title="Logga ut"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 pb-32">
+        <main className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-b from-white/5 to-dark-bg">
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-8 pb-32">
           {libraryError && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm flex items-center justify-between">
               <span>{libraryError}</span>
               <button onClick={() => window.location.reload()} className="underline font-bold">Försök igen</button>
             </div>
           )}
-          <AnimatePresence mode="wait">
-            {view === "library" ? (
-              <Library 
-                filteredBooks={filteredBooks}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                isDragging={isDragging}
-                setIsDragging={setIsDragging}
-                onFileUpload={(e) => handleFileUpload(e.dataTransfer.files)}
-                onOpenBook={openBook}
-                onRemoveBook={(e, id) => removeBook(id)}
-              />
-            ) : activeBook && (
-              <Player 
-                activeBook={activeBook}
-                isPlaying={isPlaying}
-                togglePlay={togglePlay}
-                progress={progress}
-                currentChapter={currentChapter}
-                currentCharIndex={currentCharIndex}
-                playbackRate={playbackRate}
-                cyclePlaybackRate={cyclePlaybackRate}
-                sleepTimer={sleepTimer}
-                setSleepTimer={setSleepTimer}
-                skipForward={skipForward}
-                skipBackward={skipBackward}
-                textContainerRef={textContainerRef}
-                activeWordRef={activeWordRef}
-                addBookmark={addBookmark}
-                removeBookmark={removeBookmark}
-                onJumpToPosition={jumpToPosition}
-              />
-            )}
-          </AnimatePresence>
+            <AnimatePresence mode="wait">
+              {view === "library" ? (
+                <Library 
+                  filteredBooks={filteredBooks}
+                  isDragging={isDragging}
+                  setIsDragging={setIsDragging}
+                  onFileUpload={(e) => handleFileUpload(e.dataTransfer.files)}
+                  onOpenBook={openBook}
+                  onRemoveBook={(e, id) => removeBook(id)}
+                />
+              ) : activeBook && (
+                <Player 
+                  activeBook={activeBook}
+                  isPlaying={isPlaying}
+                  togglePlay={togglePlay}
+                  progress={progress}
+                  currentChapter={currentChapter}
+                  currentCharIndex={currentCharIndex}
+                  playbackRate={playbackRate}
+                  cyclePlaybackRate={cyclePlaybackRate}
+                  sleepTimer={sleepTimer}
+                  setSleepTimer={setSleepTimer}
+                  skipForward={skipForward}
+                  skipBackward={skipBackward}
+                  textContainerRef={textContainerRef}
+                  activeWordRef={activeWordRef}
+                  addBookmark={addBookmark}
+                  removeBookmark={removeBookmark}
+                  onJumpToPosition={jumpToPosition}
+                  onBack={() => setView("library")}
+                />
+              )}
+            </AnimatePresence>
         </div>
 
         {/* Hidden Audio Element */}

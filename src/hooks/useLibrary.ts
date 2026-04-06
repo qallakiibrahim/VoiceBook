@@ -76,6 +76,7 @@ export const useLibrary = (user: User | null) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "audio" | "document">("all");
   const [error, setError] = useState<string | null>(null);
 
   // Load books from Firestore when user changes
@@ -258,9 +259,11 @@ export const useLibrary = (user: User | null) => {
     }
   };
 
-  const filteredBooks = books.filter(b => 
-    b.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBooks = books.filter(b => {
+    const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === "all" || b.type === filter;
+    return matchesSearch && matchesFilter;
+  });
 
   return {
     books,
@@ -268,6 +271,8 @@ export const useLibrary = (user: User | null) => {
     isExtracting,
     searchQuery,
     setSearchQuery,
+    filter,
+    setFilter,
     handleFileUpload,
     removeBook,
     updateBookProgress,

@@ -1,0 +1,110 @@
+import React from "react";
+import { BookOpen, LogOut, Search, Plus, Music, FileText } from "lucide-react";
+import { User, logout } from "../firebase";
+import { cn } from "@/src/lib/utils";
+
+interface HeaderProps {
+  user: User | null;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filter: "all" | "audio" | "document";
+  setFilter: (filter: "all" | "audio" | "document") => void;
+  onAddBooks: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ 
+  user, 
+  searchQuery, 
+  setSearchQuery, 
+  filter, 
+  setFilter,
+  onAddBooks 
+}) => {
+  return (
+    <header className="h-16 md:h-20 bg-black/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between gap-4">
+      {/* Logo */}
+      <div className="flex items-center gap-2 md:gap-3 shrink-0">
+        <div className="w-8 h-8 md:w-10 md:h-10 bg-spotify-green rounded-full flex items-center justify-center shadow-lg shadow-spotify-green/20">
+          <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-black" />
+        </div>
+        <h1 className="font-bold text-lg md:text-xl tracking-tight hidden sm:block">VoiceBook</h1>
+      </div>
+
+      {/* Search & Filters */}
+      <div className="flex-1 max-w-2xl flex items-center gap-2 md:gap-4">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-spotify-green transition-colors" />
+          <input 
+            type="text"
+            placeholder="Sök i ditt bibliotek..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-spotify-green/50 focus:bg-white/10 transition-all"
+          />
+        </div>
+
+        <div className="hidden md:flex items-center bg-white/5 rounded-full p-1 border border-white/10">
+          <button 
+            onClick={() => setFilter("all")}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-xs font-bold transition-all",
+              filter === "all" ? "bg-white text-black" : "text-gray-400 hover:text-white"
+            )}
+          >
+            Alla
+          </button>
+          <button 
+            onClick={() => setFilter("audio")}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2",
+              filter === "audio" ? "bg-white text-black" : "text-gray-400 hover:text-white"
+            )}
+          >
+            <Music className="w-3 h-3" />
+            Ljud
+          </button>
+          <button 
+            onClick={() => setFilter("document")}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2",
+              filter === "document" ? "bg-white text-black" : "text-gray-400 hover:text-white"
+            )}
+          >
+            <FileText className="w-3 h-3" />
+            Text
+          </button>
+        </div>
+      </div>
+
+      {/* Actions & User */}
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        <button 
+          onClick={onAddBooks}
+          className="p-2 md:px-4 md:py-2 bg-white text-black rounded-full font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform active:scale-95"
+          title="Lägg till böcker"
+        >
+          <Plus className="w-5 h-5 md:w-4 md:h-4" />
+          <span className="hidden md:inline">Lägg till</span>
+        </button>
+
+        {user && (
+          <div className="flex items-center gap-3 pl-2 border-l border-white/10">
+            <img 
+              src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=random`} 
+              alt="Profile" 
+              className="w-8 h-8 rounded-full border border-white/20 hidden sm:block"
+              referrerPolicy="no-referrer"
+            />
+            <button 
+              onClick={logout}
+              className="p-2 text-gray-400 hover:text-white transition-colors"
+              title="Logga ut"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};

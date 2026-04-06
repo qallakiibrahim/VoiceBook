@@ -1,14 +1,12 @@
 import React from "react";
 import { motion } from "motion/react";
-import { Search, Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
 import { BookCard } from "./BookCard";
 import { Book } from "../types";
 import { cn } from "@/src/lib/utils";
 
 interface LibraryProps {
   filteredBooks: Book[];
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
   isDragging: boolean;
   setIsDragging: (val: boolean) => void;
   onFileUpload: (e: React.DragEvent) => void;
@@ -18,8 +16,6 @@ interface LibraryProps {
 
 export const Library: React.FC<LibraryProps> = ({
   filteredBooks,
-  searchQuery,
-  setSearchQuery,
   isDragging,
   setIsDragging,
   onFileUpload,
@@ -32,20 +28,12 @@ export const Library: React.FC<LibraryProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
+      className="pt-8"
     >
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold mb-6">Ditt Bibliotek</h2>
-          <div className="relative max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input 
-              type="text"
-              placeholder="Sök bland dina böcker..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-1 focus:ring-spotify-green transition-all"
-            />
-          </div>
+          <h2 className="text-3xl font-bold">Ditt Bibliotek</h2>
+          <p className="text-gray-400 mt-1">Hantera och lyssna på din samling</p>
         </div>
         
         <div 
