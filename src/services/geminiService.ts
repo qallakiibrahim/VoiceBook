@@ -4,9 +4,22 @@ let aiInstance: GoogleGenAI | null = null;
 
 function getAI() {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
-      throw new Error("GEMINI_API_KEY saknas. Vänligen konfigurera din API-nyckel i inställningarna.");
+    const apiKey = 
+      process.env.GEMINI_API_KEY || 
+      process.env.API_KEY || 
+      (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+      (import.meta as any).env?.VITE_API_KEY;
+    
+    const isInvalid = (key: any) => 
+      !key || 
+      key === "undefined" || 
+      key === "null" || 
+      key === "MY_GEMINI_API_KEY" || 
+      key === "MY_API_KEY" || 
+      (typeof key === 'string' && key.trim() === "");
+
+    if (isInvalid(apiKey)) {
+      throw new Error("API-nyckel saknas. Vänligen kontrollera att du har lagt till GEMINI_API_KEY eller API_KEY i 'Secrets' i inställningarna och LADDA OM sidan.");
     }
     aiInstance = new GoogleGenAI({ apiKey });
   }
@@ -36,6 +49,7 @@ export async function summarizeBook(title: string, content: string): Promise<str
     return response.text || "Kunde inte generera en sammanfattning.";
   } catch (error) {
     console.error("Error summarizing book:", error);
-    throw new Error("Misslyckades med att sammanfatta boken. Försök igen senare.");
+    const message = error instanceof Error ? error.message : "Misslyckades med att sammanfatta boken. Försök igen senare.";
+    throw new Error(message);
   }
 }
