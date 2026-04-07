@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
           title="Lägg till böcker"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">+ Bok</span>
+          <span className="hidden sm:inline">Bok</span>
         </button>
 
         {user && (
