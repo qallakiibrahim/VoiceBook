@@ -4,9 +4,9 @@ let aiInstance: GoogleGenAI | null = null;
 
 function getAI() {
   if (!aiInstance) {
+    // Try multiple sources for the API key
     const apiKey = 
-      process.env.GEMINI_API_KEY || 
-      process.env.API_KEY || 
+      (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY || process.env?.API_KEY : null) || 
       (import.meta as any).env?.VITE_GEMINI_API_KEY || 
       (import.meta as any).env?.VITE_API_KEY;
     
@@ -16,10 +16,10 @@ function getAI() {
       key === "null" || 
       key === "MY_GEMINI_API_KEY" || 
       key === "MY_API_KEY" || 
-      (typeof key === 'string' && key.trim() === "");
+      (typeof key === 'string' && (key.trim() === "" || key.includes("TODO")));
 
     if (isInvalid(apiKey)) {
-      throw new Error("API-nyckel saknas. Vänligen kontrollera att du har lagt till GEMINI_API_KEY eller API_KEY i 'Secrets' i inställningarna och LADDA OM sidan.");
+      throw new Error("[v4] API-nyckel saknas. Vänligen kontrollera att du har lagt till GEMINI_API_KEY eller API_KEY i 'Secrets' i inställningarna och LADDA OM sidan (F5).");
     }
     aiInstance = new GoogleGenAI({ apiKey });
   }
