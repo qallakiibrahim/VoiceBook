@@ -27,13 +27,16 @@ export const Header: React.FC<HeaderProps> = ({
   onAddBooks 
 }) => {
   return (
-    <header className="h-20 md:h-24 bg-black/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between gap-4">
+    <header className="h-16 md:h-18 bg-black/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50 px-4 md:px-8 flex items-center justify-between gap-4">
       {/* Logo */}
-      <div className="flex flex-col items-center shrink-0">
-        <div className="w-8 h-8 md:w-10 md:h-10 bg-spotify-green rounded-full flex items-center justify-center shadow-lg shadow-spotify-green/20">
-          <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-black" />
-        </div>
-        <h1 className="font-black text-[10px] md:text-xs tracking-tighter uppercase mt-1 text-spotify-green">VoiceBook</h1>
+      <div className="flex items-center shrink-0">
+        <h1 className="font-black text-sm md:text-base tracking-tighter uppercase flex items-center">
+          VoiceB
+          <span className="mx-0.5 w-5 h-5 md:w-6 md:h-6 bg-spotify-green rounded-full flex items-center justify-center shadow-lg shadow-spotify-green/20">
+            <BookOpen className="w-3 h-3 md:w-3.5 md:h-3.5 text-black" />
+          </span>
+          ok
+        </h1>
       </div>
 
       {/* Search & Filters */}
