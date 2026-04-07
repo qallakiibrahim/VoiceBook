@@ -75,6 +75,7 @@ export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedChapterRef = useRef<number | null>(null);
 
   // Auth listener
   useEffect(() => {
@@ -207,15 +208,28 @@ export default function App() {
     }
   }, [activeBook?.id, activeBook?.type, setCurrentChapter]);
 
-  // Update document progress in Firestore
+  // Update document progress
   useEffect(() => {
     if (activeBook?.type === "document") {
       const chapters = getChapters(activeBook.content || "");
-      const p = chapters.length > 0 ? (currentChapter / chapters.length) * 100 : 0;
-      setProgress(p);
-      updateBookProgress(activeBook.id, p, currentChapter);
+      if (chapters.length === 0) return;
+      
+      const currentText = chapters[currentChapter] || "";
+      const chapterProgress = currentText.length > 0 ? currentCharIndex / currentText.length : 0;
+      const totalProgress = ((currentChapter + chapterProgress) / chapters.length) * 100;
+      
+      // Update local state for smooth UI
+      setProgress(totalProgress);
+      
+      // Update Firestore if chapter changed OR if progress moved significantly (> 1%)
+      // to ensure the library view stays reasonably in sync
+      const lastSavedProgress = activeBook.progress || 0;
+      if (lastSavedChapterRef.current !== currentChapter || Math.abs(totalProgress - lastSavedProgress) > 1) {
+        updateBookProgress(activeBook.id, totalProgress, currentChapter);
+        lastSavedChapterRef.current = currentChapter;
+      }
     }
-  }, [currentChapter, activeBook?.id, activeBook?.type, activeBook?.content, updateBookProgress]);
+  }, [currentChapter, currentCharIndex, activeBook?.id, activeBook?.type, activeBook?.content, activeBook?.progress, updateBookProgress]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current && activeBook?.type === "audio") {
@@ -236,6 +250,7 @@ export default function App() {
     setActiveBookId(book.id);
     setView("player");
     setProgress(book.progress);
+    lastSavedChapterRef.current = null;
     if (book.type === "document") {
       setCurrentChapter(book.lastPosition || 0);
     }
@@ -360,6 +375,7 @@ export default function App() {
                   onOpenBook={openBook}
                   onRemoveBook={(e, id) => removeBook(id)}
                   uploadProgress={uploadProgress}
+                  isExtracting={isExtracting}
                 />
               ) : activeBook && (
                 <Player 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Book, Bookmark } from "../types";
 import { COVER_COLORS } from "../constants";
 import { extractTextFromPDF, extractTextFromEPUB } from "../lib/extraction";
@@ -218,7 +218,7 @@ export const useLibrary = (user: User | null) => {
     }
   };
 
-  const updateBookProgress = async (id: string, progress: number, lastPosition?: number) => {
+  const updateBookProgress = useCallback(async (id: string, progress: number, lastPosition?: number) => {
     if (!user) return;
     const path = `users/${user.uid}/books/${id}`;
     try {
@@ -230,7 +230,7 @@ export const useLibrary = (user: User | null) => {
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
-  };
+  }, [user]);
 
   const addBookmark = async (bookId: string, label: string, position: number) => {
     if (!user) return;

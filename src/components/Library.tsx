@@ -13,6 +13,7 @@ interface LibraryProps {
   onOpenBook: (book: Book) => void;
   onRemoveBook: (e: React.MouseEvent, id: string) => void;
   uploadProgress: { current: number, total: number, fileName: string } | null;
+  isExtracting: boolean;
 }
 
 export const Library: React.FC<LibraryProps> = ({
@@ -22,7 +23,8 @@ export const Library: React.FC<LibraryProps> = ({
   onFileUpload,
   onOpenBook,
   onRemoveBook,
-  uploadProgress
+  uploadProgress,
+  isExtracting
 }) => {
   return (
     <motion.div 
@@ -38,17 +40,22 @@ export const Library: React.FC<LibraryProps> = ({
           <p className="text-gray-400 mt-1">Hantera och lyssna på din samling</p>
         </div>
         
-        {uploadProgress ? (
+        {uploadProgress || isExtracting ? (
           <div className="flex-1 max-w-md mx-8 p-4 bg-white/5 rounded-xl border border-white/10">
             <div className="flex justify-between text-xs font-bold mb-2">
-              <span className="text-spotify-green animate-pulse">Laddar upp: {uploadProgress.fileName}</span>
-              <span className="text-gray-400">{uploadProgress.current} av {uploadProgress.total}</span>
+              <span className="text-spotify-green animate-pulse">
+                {isExtracting ? "Extraherar text..." : `Laddar upp: ${uploadProgress?.fileName}`}
+              </span>
+              {uploadProgress && (
+                <span className="text-gray-400">{uploadProgress.current} av {uploadProgress.total}</span>
+              )}
             </div>
             <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
               <motion.div 
                 className="h-full bg-spotify-green"
                 initial={{ width: 0 }}
-                animate={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                animate={{ width: isExtracting ? "100%" : `${(uploadProgress?.current || 0) / (uploadProgress?.total || 1) * 100}%` }}
+                transition={isExtracting ? { duration: 2, repeat: Infinity } : {}}
               />
             </div>
           </div>
