@@ -1,11 +1,23 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  if (!aiInstance) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === "MY_GEMINI_API_KEY") {
+      throw new Error("GEMINI_API_KEY saknas. Vänligen konfigurera din API-nyckel i inställningarna.");
+    }
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+}
 
 export async function summarizeBook(title: string, content: string): Promise<string> {
   if (!content) return "Inget innehåll tillgängligt för sammanfattning.";
 
   try {
+    const ai = getAI();
     // Limit content to avoid token limits if book is very long
     // Gemini 3 Flash has a large context window, but for a quick summary 
     // we can focus on the first 50k characters if it's massive.
