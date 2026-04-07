@@ -10,7 +10,7 @@ export const extractTextFromPDF = async (url: string): Promise<string> => {
   const loadingTask = pdfjsLib.getDocument(url);
   const pdf = await loadingTask.promise;
   let fullText = "";
-  for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
+  for (let i = 1; i <= Math.min(pdf.numPages, 500); i++) {
     const page = await pdf.getPage(i);
     const textContent = await page.getTextContent();
     fullText += textContent.items.map((item: any) => item.str).join(" ") + "\n\n";
@@ -25,7 +25,7 @@ export const extractTextFromEPUB = async (url: string): Promise<string> => {
   // @ts-ignore - epubjs types can be tricky
   const spine = book.spine;
   const spineLength = (spine as any).length || 0;
-  for (let i = 0; i < Math.min(spineLength, 10); i++) {
+  for (let i = 0; i < Math.min(spineLength, 100); i++) {
     const item = (spine as any).get(i);
     const doc = await item.load(book.load.bind(book));
     // @ts-ignore
