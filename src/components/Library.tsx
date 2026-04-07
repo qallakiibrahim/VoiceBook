@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 import { BookCard } from "./BookCard";
 import { Book } from "../types";
 import { cn } from "@/src/lib/utils";
@@ -26,6 +26,8 @@ export const Library: React.FC<LibraryProps> = ({
   uploadProgress,
   isExtracting
 }) => {
+  const isProcessing = !!uploadProgress || isExtracting;
+
   return (
     <motion.div 
       key="library"
@@ -40,26 +42,7 @@ export const Library: React.FC<LibraryProps> = ({
           <p className="text-gray-400 mt-1">Hantera och lyssna på din samling</p>
         </div>
         
-        {uploadProgress || isExtracting ? (
-          <div className="flex-1 max-w-md mx-8 p-4 bg-white/5 rounded-xl border border-white/10">
-            <div className="flex justify-between text-xs font-bold mb-2">
-              <span className="text-spotify-green animate-pulse">
-                {isExtracting ? "Extraherar text..." : `Laddar upp: ${uploadProgress?.fileName}`}
-              </span>
-              {uploadProgress && (
-                <span className="text-gray-400">{uploadProgress.current} av {uploadProgress.total}</span>
-              )}
-            </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <motion.div 
-                className="h-full bg-spotify-green"
-                initial={{ width: 0 }}
-                animate={{ width: isExtracting ? "100%" : `${(uploadProgress?.current || 0) / (uploadProgress?.total || 1) * 100}%` }}
-                transition={isExtracting ? { duration: 2, repeat: Infinity } : {}}
-              />
-            </div>
-          </div>
-        ) : (
+        {!isProcessing && (
           <div 
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -75,7 +58,7 @@ export const Library: React.FC<LibraryProps> = ({
         )}
       </div>
 
-      {filteredBooks.length === 0 ? (
+      {filteredBooks.length === 0 && !isProcessing ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
             <BookOpen className="w-10 h-10 text-gray-600" />
@@ -85,6 +68,41 @@ export const Library: React.FC<LibraryProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {/* Loading Placeholder Card */}
+          {isProcessing && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center text-center aspect-[3/4] relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-spotify-green/10 to-transparent animate-pulse" />
+              <Loader2 className="w-10 h-10 text-spotify-green animate-spin mb-4 relative z-10" />
+              <div className="relative z-10">
+                <h3 className="font-bold text-sm mb-1">
+                  {isExtracting ? "Bearbetar..." : "Laddar upp..."}
+                </h3>
+                <p className="text-[10px] text-gray-400 line-clamp-2 px-2">
+                  {uploadProgress?.fileName || "Vänligen vänta"}
+                </p>
+                {uploadProgress && (
+                  <div className="mt-4 w-full px-4">
+                    <div className="flex justify-between text-[8px] font-bold mb-1 uppercase tracking-tighter">
+                      <span className="text-spotify-green">Status</span>
+                      <span className="text-gray-500">{uploadProgress.current}/{uploadProgress.total}</span>
+                    </div>
+                    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-spotify-green"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
           {filteredBooks.map(book => (
             <BookCard 
               key={book.id} 
