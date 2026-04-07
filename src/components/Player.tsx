@@ -25,6 +25,7 @@ interface PlayerProps {
   activeWordRef: React.RefObject<HTMLSpanElement>;
   addBookmark: (bookId: string, label: string, position: number) => void;
   removeBookmark: (bookId: string, bookmarkId: string) => void;
+  generateSummary: (bookId: string) => void;
   onJumpToPosition: (position: number) => void;
   onBack: () => void;
 }
@@ -46,10 +47,13 @@ export const Player: React.FC<PlayerProps> = ({
   activeWordRef,
   addBookmark,
   removeBookmark,
+  generateSummary,
   onJumpToPosition,
   onBack
 }) => {
   const [showSavedFeedback, setShowSavedFeedback] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [activeTab, setActiveTab] = useState<"content" | "summary">("content");
   const isTTSSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const handleAddBookmark = () => {
@@ -68,6 +72,16 @@ export const Player: React.FC<PlayerProps> = ({
     // Show feedback
     setShowSavedFeedback(true);
     setTimeout(() => setShowSavedFeedback(false), 2000);
+  };
+
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      await generateSummary(activeBook.id);
+      setActiveTab("summary");
+    } finally {
+      setIsGeneratingSummary(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -259,60 +273,157 @@ export const Player: React.FC<PlayerProps> = ({
           </div>
 
           {activeBook.type === "document" && (
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex flex-col h-64">
-              <h3 className="font-bold mb-4 flex items-center justify-between shrink-0">
-                <span className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-spotify-green" />
-                  Kapitel {currentChapter + 1}
-                </span>
-                {!isTTSSupported && (
-                  <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded">
-                    Webbläsaren stöder inte talsyntes
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/5 flex flex-col h-[500px]">
+              <div className="flex items-center justify-between mb-6 shrink-0">
+                <div className="flex bg-white/5 p-1 rounded-xl">
+                  <button 
+                    onClick={() => setActiveTab("content")}
+                    className={cn(
+                      "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                      activeTab === "content" ? "bg-spotify-green text-black" : "text-gray-400 hover:text-white"
+                    )}
+                  >
+                    Innehåll
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("summary")}
+                    className={cn(
+                      "px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                      activeTab === "summary" ? "bg-spotify-green text-black" : "text-gray-400 hover:text-white"
+                    )}
+                  >
+                    AI Sammanfattning
+                    {!activeBook.summary && <Zap className="w-3 h-3" />}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  {!isTTSSupported && (
+                    <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded">
+                      Webbläsaren stöder inte talsyntes
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-500">
+                    {getChapters(activeBook.content || "").length} kapitel totalt
                   </span>
-                )}
-                <span className="text-xs text-gray-500">
-                  {getChapters(activeBook.content || "").length} kapitel totalt
-                </span>
-              </h3>
-              <div 
-                ref={textContainerRef}
-                className="text-gray-300 text-lg leading-relaxed overflow-y-auto custom-scrollbar pr-2 h-full"
-              >
-                {(() => {
-                  const chapters = getChapters(activeBook.content || "");
-                  const text = chapters[currentChapter] || "";
-                  if (!text || text.trim().length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                        <FileText className="w-12 h-12 text-gray-600 mb-4" />
-                        <p className="text-gray-500">Ingen text kunde hittas i detta kapitel.</p>
-                        <p className="text-xs text-gray-600 mt-2">Detta kan bero på att boken laddades upp med en tidigare begränsning eller att PDF:en endast innehåller bilder.</p>
-                      </div>
-                    );
-                  }
-                  
-                  // Ensure index is within bounds
-                  const safeIndex = Math.min(Math.max(0, currentCharIndex), text.length);
-                  let nextSpace = text.indexOf(' ', safeIndex);
-                  if (nextSpace === -1) nextSpace = text.length;
-                  
-                  const before = text.substring(0, safeIndex);
-                  const current = text.substring(safeIndex, nextSpace);
-                  const after = text.substring(nextSpace);
-                  
-                  return (
-                    <div className="relative">
-                      <span className="opacity-30 transition-opacity duration-300">{before}</span>
-                      <span 
-                        ref={activeWordRef}
-                        className="bg-spotify-green text-black px-1 rounded transition-all duration-200 font-bold shadow-[0_0_15px_rgba(30,215,96,0.4)] mx-0.5"
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {activeTab === "content" ? (
+                    <motion.div 
+                      key="content"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="h-full flex flex-col"
+                    >
+                      <h3 className="font-bold mb-4 flex items-center gap-2 text-sm text-gray-400">
+                        <FileText className="w-4 h-4 text-spotify-green" />
+                        Kapitel {currentChapter + 1}
+                      </h3>
+                      <div 
+                        ref={textContainerRef}
+                        className="text-gray-300 text-lg leading-relaxed overflow-y-auto custom-scrollbar pr-2 flex-1"
                       >
-                        {current}
-                      </span>
-                      <span className="transition-opacity duration-300">{after}</span>
-                    </div>
-                  );
-                })()}
+                        {(() => {
+                          const chapters = getChapters(activeBook.content || "");
+                          const text = chapters[currentChapter] || "";
+                          if (!text || text.trim().length === 0) {
+                            return (
+                              <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                                <FileText className="w-12 h-12 text-gray-600 mb-4" />
+                                <p className="text-gray-500">Ingen text kunde hittas i detta kapitel.</p>
+                                <p className="text-xs text-gray-600 mt-2">Detta kan bero på att boken laddades upp med en tidigare begränsning eller att PDF:en endast innehåller bilder.</p>
+                              </div>
+                            );
+                          }
+                          
+                          const safeIndex = Math.min(Math.max(0, currentCharIndex), text.length);
+                          let nextSpace = text.indexOf(' ', safeIndex);
+                          if (nextSpace === -1) nextSpace = text.length;
+                          
+                          const before = text.substring(0, safeIndex);
+                          const current = text.substring(safeIndex, nextSpace);
+                          const after = text.substring(nextSpace);
+                          
+                          return (
+                            <div className="relative">
+                              <span className="opacity-30 transition-opacity duration-300">{before}</span>
+                              <span 
+                                ref={activeWordRef}
+                                className="bg-spotify-green text-black px-1 rounded transition-all duration-200 font-bold shadow-[0_0_15px_rgba(30,215,96,0.4)] mx-0.5"
+                              >
+                                {current}
+                              </span>
+                              <span className="transition-opacity duration-300">{after}</span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="summary"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="h-full flex flex-col"
+                    >
+                      {activeBook.summary ? (
+                        <div className="text-gray-300 text-lg leading-relaxed overflow-y-auto custom-scrollbar pr-2 flex-1 space-y-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold flex items-center gap-2 text-sm text-gray-400">
+                              <Zap className="w-4 h-4 text-spotify-green" />
+                              AI-genererad översikt
+                            </h3>
+                            <button 
+                              onClick={handleGenerateSummary}
+                              disabled={isGeneratingSummary}
+                              className="text-[10px] font-bold text-gray-500 hover:text-white transition-colors uppercase tracking-wider"
+                            >
+                              {isGeneratingSummary ? "Uppdaterar..." : "Uppdatera sammanfattning"}
+                            </button>
+                          </div>
+                          <div className="bg-white/5 rounded-xl p-6 border border-white/5 italic text-gray-200">
+                            {activeBook.summary.split('\n').map((line, i) => (
+                              <p key={i} className={line.trim() ? "mb-4" : "h-2"}>{line}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                          <div className="w-16 h-16 bg-spotify-green/10 rounded-full flex items-center justify-center mb-6">
+                            <Zap className="w-8 h-8 text-spotify-green" />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2">Ingen sammanfattning än</h3>
+                          <p className="text-gray-400 max-w-xs mb-8">Låt AI analysera boken och ge dig en snabb översikt av det viktigaste innehållet.</p>
+                          <button 
+                            onClick={handleGenerateSummary}
+                            disabled={isGeneratingSummary}
+                            className={cn(
+                              "px-8 py-3 bg-spotify-green text-black rounded-full font-bold hover:scale-105 transition-all shadow-xl flex items-center gap-2",
+                              isGeneratingSummary && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            {isGeneratingSummary ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                Analyserar boken...
+                              </>
+                            ) : (
+                              <>
+                                <Zap className="w-4 h-4" />
+                                Generera sammanfattning
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           )}

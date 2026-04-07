@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { Music, FileText, X } from "lucide-react";
+import { Music, FileText, X, Zap } from "lucide-react";
 import { Book } from "../types";
 import { cn } from "@/src/lib/utils";
 
@@ -32,6 +32,12 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onOpen, onRemove }) =>
         {book.type === "audio" ? <Music className="w-12 h-12 mb-4 opacity-50" /> : <FileText className="w-12 h-12 mb-4 opacity-50" />}
         <div className="font-bold text-sm leading-tight line-clamp-3">{book.title}</div>
         
+        {book.summary && (
+          <div className="absolute top-2 right-2 bg-spotify-green/20 p-1 rounded-full">
+            <Zap className="w-3 h-3 text-spotify-green" />
+          </div>
+        )}
+
         <div className="absolute bottom-4 left-0 right-0 px-4">
           <div className="h-1 bg-black/20 rounded-full overflow-hidden">
             <div 

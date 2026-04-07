@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Book, Bookmark } from "../types";
 import { COVER_COLORS } from "../constants";
 import { extractTextFromPDF, extractTextFromEPUB } from "../lib/extraction";
+import { summarizeBook } from "../services/geminiService";
 import { 
   db, 
   collection, 
@@ -272,6 +273,21 @@ export const useLibrary = (user: User | null) => {
     }
   };
 
+  const generateSummary = async (bookId: string) => {
+    if (!user) return;
+    const path = `users/${user.uid}/books/${bookId}`;
+    try {
+      const book = books.find(b => b.id === bookId);
+      if (!book || !book.content) return;
+
+      const summary = await summarizeBook(book.title, book.content);
+      const bookRef = doc(db, "users", user.uid, "books", bookId);
+      await updateDoc(bookRef, { summary });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, path);
+    }
+  };
+
   const filteredBooks = books.filter(b => {
     const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filter === "all" || b.type === filter;
@@ -292,6 +308,7 @@ export const useLibrary = (user: User | null) => {
     updateBookProgress,
     addBookmark,
     removeBookmark,
+    generateSummary,
     error
   };
 };

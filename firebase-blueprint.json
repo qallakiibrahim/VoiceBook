@@ -29,6 +29,7 @@
         "progress": { "type": "number" },
         "lastPosition": { "type": "number" },
         "content": { "type": "string" },
+        "summary": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "userId", "title", "type"]

@@ -12,6 +12,7 @@ export interface Book {
   coverColor: string;
   progress: number;
   content?: string;
+  summary?: string;
   lastPosition?: number;
   bookmarks?: Bookmark[];
   createdAt?: string;

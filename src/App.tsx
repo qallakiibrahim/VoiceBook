@@ -121,6 +121,7 @@ export default function App() {
     updateBookProgress,
     addBookmark,
     removeBookmark,
+    generateSummary,
     error: libraryError
   } = useLibrary(user);
 
@@ -411,6 +412,7 @@ export default function App() {
                   activeWordRef={activeWordRef}
                   addBookmark={addBookmark}
                   removeBookmark={removeBookmark}
+                  generateSummary={generateSummary}
                   onJumpToPosition={jumpToPosition}
                   onBack={() => setView("library")}
                 />
