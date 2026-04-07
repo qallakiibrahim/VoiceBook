@@ -14,7 +14,8 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Gemini API Endpoint
   app.post("/api/summarize", async (req, res) => {
@@ -29,19 +30,19 @@ async function startServer() {
     }
 
     try {
-      const genAI = new GoogleGenAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const ai = new GoogleGenAI({ apiKey });
       
-      const prompt = `Sammanfatta följande bok med titeln "${title}". 
-      Ge en kortfattad översikt av de viktigaste punkterna, huvudtemat och de mest intressanta insikterna. 
-      Svara på svenska.
-      
-      Innehåll:
-      ${content.slice(0, 50000)}`;
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Sammanfatta följande bok med titeln "${title}". 
+        Ge en kortfattad översikt av de viktigaste punkterna, huvudtemat och de mest intressanta insikterna. 
+        Svara på svenska.
+        
+        Innehåll:
+        ${content.slice(0, 50000)}`,
+      });
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      res.json({ summary: response.text() });
+      res.json({ summary: response.text || "Kunde inte generera en sammanfattning." });
     } catch (error) {
       console.error("Gemini Error:", error);
       res.status(500).json({ error: "Misslyckades med att generera sammanfattning." });
