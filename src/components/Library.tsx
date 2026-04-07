@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { Plus, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { BookCard } from "./BookCard";
 import { Book } from "../types";
 import { cn } from "@/src/lib/utils";
@@ -65,12 +65,12 @@ export const Library: React.FC<LibraryProps> = ({
             onDragLeave={() => setIsDragging(false)}
             onDrop={onFileUpload}
             className={cn(
-              "hidden md:flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 transition-all w-64 h-32 text-center",
-              isDragging ? "border-spotify-green bg-spotify-green/5 scale-105" : "border-white/10 hover:border-white/20"
+              "hidden md:flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 transition-all w-64 h-24 text-center",
+              isDragging ? "border-spotify-green bg-spotify-green/5 scale-105" : "border-white/5 hover:border-white/10"
             )}
           >
-            <Plus className={cn("w-6 h-6 mb-2", isDragging ? "text-spotify-green animate-bounce" : "text-gray-500")} />
-            <p className="text-xs font-bold text-gray-400">Släpp filer här för att lägga till</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Dra & Släpp</p>
+            <p className="text-[10px] text-gray-600 mt-1">Filer för att lägga till</p>
           </div>
         )}
       </div>
