@@ -30,23 +30,21 @@ export async function summarizeBook(title: string, content: string): Promise<str
   if (!content) return "Inget innehåll tillgängligt för sammanfattning.";
 
   try {
-    const ai = getAI();
-    // Limit content to avoid token limits if book is very long
-    // Gemini 3 Flash has a large context window, but for a quick summary 
-    // we can focus on the first 50k characters if it's massive.
-    const truncatedContent = content.slice(0, 100000);
-
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Sammanfatta följande bok med titeln "${title}". 
-      Ge en kortfattad översikt av de viktigaste punkterna, huvudtemat och de mest intressanta insikterna. 
-      Svara på svenska.
-      
-      Innehåll:
-      ${truncatedContent}`,
+    const response = await fetch("/api/summarize", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ title, content: content.slice(0, 50000) }),
     });
 
-    return response.text || "Kunde inte generera en sammanfattning.";
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Kunde inte generera en sammanfattning.");
+    }
+
+    const data = await response.json();
+    return data.summary || "Kunde inte generera en sammanfattning.";
   } catch (error) {
     console.error("Error summarizing book:", error);
     const message = error instanceof Error ? error.message : "Misslyckades med att sammanfatta boken. Försök igen senare.";
