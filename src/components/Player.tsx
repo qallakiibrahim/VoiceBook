@@ -50,6 +50,7 @@ export const Player: React.FC<PlayerProps> = ({
   onBack
 }) => {
   const [showSavedFeedback, setShowSavedFeedback] = useState(false);
+  const isTTSSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
   const handleAddBookmark = () => {
     const position = activeBook.type === "document" ? currentChapter : (activeBook.lastPosition || 0);
@@ -186,6 +187,17 @@ export const Player: React.FC<PlayerProps> = ({
                   <Zap className="w-4 h-4" />
                   {playbackRate}x hastighet
                 </button>
+                <button 
+                  onClick={() => {
+                    window.speechSynthesis.cancel();
+                    if (isPlaying) togglePlay();
+                    setTimeout(() => togglePlay(), 100);
+                  }}
+                  className="hover:text-white transition-colors flex items-center gap-2 text-xs opacity-50 hover:opacity-100"
+                  title="Återställ ljud om det hänger sig"
+                >
+                  Återställ ljud
+                </button>
               </div>
               <div className="relative">
                 <button 
@@ -253,6 +265,11 @@ export const Player: React.FC<PlayerProps> = ({
                   <FileText className="w-4 h-4 text-spotify-green" />
                   Kapitel {currentChapter + 1}
                 </span>
+                {!isTTSSupported && (
+                  <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded">
+                    Webbläsaren stöder inte talsyntes
+                  </span>
+                )}
                 <span className="text-xs text-gray-500">
                   {getChapters(activeBook.content || "").length} kapitel totalt
                 </span>

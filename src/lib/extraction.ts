@@ -35,5 +35,27 @@ export const extractTextFromEPUB = async (url: string): Promise<string> => {
 };
 
 export const getChapters = (content: string) => {
-  return content.split("\n\n").filter(c => c.trim().length > 0);
+  if (!content) return [];
+  
+  // First try splitting by double newline (paragraphs/pages)
+  let chapters = content.split("\n\n").filter(c => c.trim().length > 0);
+  
+  // If we only got one huge chapter, try splitting by single newline
+  if (chapters.length === 1 && chapters[0].length > 5000) {
+    chapters = content.split("\n").filter(c => c.trim().length > 0);
+  }
+  
+  // Final safety: if any chapter is still too long for TTS (limit is usually ~32k, we use 4k for better UX)
+  const finalChapters: string[] = [];
+  for (const chapter of chapters) {
+    if (chapter.length > 4000) {
+      // Split by sentences or just chunks
+      const chunks = chapter.match(/.{1,4000}(\s|$)/g) || [chapter];
+      finalChapters.push(...chunks.map(c => c.trim()));
+    } else {
+      finalChapters.push(chapter);
+    }
+  }
+  
+  return finalChapters;
 };

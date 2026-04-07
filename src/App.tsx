@@ -140,7 +140,8 @@ export default function App() {
     currentCharIndex,
     textContainerRef,
     activeWordRef,
-    cyclePlaybackRate
+    cyclePlaybackRate,
+    primeTTS
   } = useTTS(activeBook, isPlaying, setIsPlaying);
 
   // Sleep timer logic
@@ -170,9 +171,12 @@ export default function App() {
       }
       setIsPlaying(!isPlaying);
     } else {
+      if (!isPlaying) {
+        primeTTS();
+      }
       setIsPlaying(!isPlaying);
     }
-  }, [activeBook?.id, activeBook?.type, isPlaying]);
+  }, [activeBook?.id, activeBook?.type, isPlaying, primeTTS]);
 
   const skipForward = useCallback(() => {
     if (activeBook?.type === "audio" && audioRef.current) {
@@ -203,6 +207,16 @@ export default function App() {
     }
   }, [activeBook?.id, activeBook?.type, setCurrentChapter]);
 
+  // Update document progress in Firestore
+  useEffect(() => {
+    if (activeBook?.type === "document") {
+      const chapters = getChapters(activeBook.content || "");
+      const p = chapters.length > 0 ? (currentChapter / chapters.length) * 100 : 0;
+      setProgress(p);
+      updateBookProgress(activeBook.id, p, currentChapter);
+    }
+  }, [currentChapter, activeBook?.id, activeBook?.type, activeBook?.content, updateBookProgress]);
+
   const handleTimeUpdate = () => {
     if (audioRef.current && activeBook?.type === "audio") {
       const current = audioRef.current.currentTime;
@@ -220,9 +234,11 @@ export default function App() {
       setIsPlaying(false);
     }
     setActiveBookId(book.id);
-    setView("library");
+    setView("player");
     setProgress(book.progress);
-    setCurrentChapter(0);
+    if (book.type === "document") {
+      setCurrentChapter(book.lastPosition || 0);
+    }
   };
 
   // Media Session API for lock screen controls

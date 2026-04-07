@@ -34,7 +34,8 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
   // Load voices
   useEffect(() => {
     const loadVoices = () => {
-      window.speechSynthesis.getVoices();
+      const voices = window.speechSynthesis.getVoices();
+      console.log("Available voices:", voices.length, voices.map(v => v.lang).slice(0, 5));
     };
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -69,48 +70,56 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
       return;
     }
 
-    const detectedLang = detectLanguage(text);
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find(v => v.lang.includes(detectedLang) || v.lang.replace("-", "_").includes(detectedLang.replace("-", "_")));
-    if (voice) {
-      utterance.voice = voice;
-    }
-    
-    utterance.lang = detectedLang;
-    utterance.rate = playbackRate;
-    
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        setCurrentCharIndex(event.charIndex);
-      }
-    };
-    
-    utterance.onstart = () => {
-      setCurrentCharIndex(0);
-    };
-    
-    utterance.onend = () => {
-      if (index < chapters.length - 1) {
-        setTimeout(() => {
-          setCurrentChapter(prev => prev + 1);
-        }, 300);
-      } else {
-        setIsPlaying(false);
-      }
-    };
-
-    utterance.onerror = (e) => {
-      // Aggressively ignore common interruption/cancellation events
-      if (e.error === 'interrupted' || e.error === 'canceled') return;
+    // Small timeout to ensure cancel() has finished and to help with mobile browser quirks
+    setTimeout(() => {
+      const detectedLang = detectLanguage(text);
+      const utterance = new SpeechSynthesisUtterance(text);
       
-      console.error("TTS Error:", e.error, e);
-      setIsPlaying(false);
-    };
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.lang.includes(detectedLang) || v.lang.replace("-", "_").includes(detectedLang.replace("-", "_")));
+      if (voice) {
+        utterance.voice = voice;
+      }
+      
+      utterance.lang = detectedLang;
+      utterance.rate = playbackRate;
+      
+      utterance.onboundary = (event) => {
+        if (event.name === 'word') {
+          setCurrentCharIndex(event.charIndex);
+        }
+      };
+      
+      utterance.onstart = () => {
+        console.log("TTS started playing chapter", index);
+        setCurrentCharIndex(0);
+      };
+      
+      utterance.onend = () => {
+        console.log("TTS finished chapter", index);
+        if (index < chapters.length - 1) {
+          setTimeout(() => {
+            setCurrentChapter(prev => prev + 1);
+          }, 300);
+        } else {
+          setIsPlaying(false);
+        }
+      };
 
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+      utterance.onerror = (e) => {
+        // Aggressively ignore common interruption/cancellation events
+        if (e.error === 'interrupted' || e.error === 'canceled') return;
+        
+        console.error("TTS Error:", e.error, e);
+        if (e.error === 'not-allowed') {
+          console.warn("TTS playback not allowed. Requires user gesture.");
+        }
+        setIsPlaying(false);
+      };
+
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   }, [activeBook?.id, activeBook?.content, activeBook?.type, playbackRate, setIsPlaying]);
 
   // Handle chapter changes and play/pause state for documents
@@ -143,6 +152,13 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
     setPlaybackRate(rates[nextIndex]);
   };
 
+  const primeTTS = () => {
+    // Unlocks TTS on mobile browsers by speaking an empty string during a user gesture
+    const utterance = new SpeechSynthesisUtterance("");
+    window.speechSynthesis.speak(utterance);
+    window.speechSynthesis.cancel();
+  };
+
   return {
     playbackRate,
     currentChapter,
@@ -151,6 +167,7 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
     setCurrentCharIndex,
     textContainerRef,
     activeWordRef,
-    cyclePlaybackRate
+    cyclePlaybackRate,
+    primeTTS
   };
 };
