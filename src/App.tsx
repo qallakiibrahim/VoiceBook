@@ -109,6 +109,7 @@ export default function App() {
     books,
     filteredBooks,
     isExtracting,
+    uploadProgress,
     searchQuery,
     setSearchQuery,
     filter,
@@ -342,6 +343,7 @@ export default function App() {
                   onFileUpload={(e) => handleFileUpload(e.dataTransfer.files)}
                   onOpenBook={openBook}
                   onRemoveBook={(e, id) => removeBook(id)}
+                  uploadProgress={uploadProgress}
                 />
               ) : activeBook && (
                 <Player 

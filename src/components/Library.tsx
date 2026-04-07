@@ -12,6 +12,7 @@ interface LibraryProps {
   onFileUpload: (e: React.DragEvent) => void;
   onOpenBook: (book: Book) => void;
   onRemoveBook: (e: React.MouseEvent, id: string) => void;
+  uploadProgress: { current: number, total: number, fileName: string } | null;
 }
 
 export const Library: React.FC<LibraryProps> = ({
@@ -20,7 +21,8 @@ export const Library: React.FC<LibraryProps> = ({
   setIsDragging,
   onFileUpload,
   onOpenBook,
-  onRemoveBook
+  onRemoveBook,
+  uploadProgress
 }) => {
   return (
     <motion.div 
@@ -36,18 +38,34 @@ export const Library: React.FC<LibraryProps> = ({
           <p className="text-gray-400 mt-1">Hantera och lyssna på din samling</p>
         </div>
         
-        <div 
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={onFileUpload}
-          className={cn(
-            "hidden md:flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 transition-all w-64 h-32 text-center",
-            isDragging ? "border-spotify-green bg-spotify-green/5 scale-105" : "border-white/10 hover:border-white/20"
-          )}
-        >
-          <Plus className={cn("w-6 h-6 mb-2", isDragging ? "text-spotify-green animate-bounce" : "text-gray-500")} />
-          <p className="text-xs font-bold text-gray-400">Släpp filer här för att lägga till</p>
-        </div>
+        {uploadProgress ? (
+          <div className="flex-1 max-w-md mx-8 p-4 bg-white/5 rounded-xl border border-white/10">
+            <div className="flex justify-between text-xs font-bold mb-2">
+              <span className="text-spotify-green animate-pulse">Laddar upp: {uploadProgress.fileName}</span>
+              <span className="text-gray-400">{uploadProgress.current} av {uploadProgress.total}</span>
+            </div>
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-spotify-green"
+                initial={{ width: 0 }}
+                animate={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div 
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={onFileUpload}
+            className={cn(
+              "hidden md:flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 transition-all w-64 h-32 text-center",
+              isDragging ? "border-spotify-green bg-spotify-green/5 scale-105" : "border-white/10 hover:border-white/20"
+            )}
+          >
+            <Plus className={cn("w-6 h-6 mb-2", isDragging ? "text-spotify-green animate-bounce" : "text-gray-500")} />
+            <p className="text-xs font-bold text-gray-400">Släpp filer här för att lägga till</p>
+          </div>
+        )}
       </div>
 
       {filteredBooks.length === 0 ? (

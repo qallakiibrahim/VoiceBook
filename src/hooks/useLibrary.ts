@@ -75,6 +75,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 export const useLibrary = (user: User | null) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, fileName: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "audio" | "document">("all");
   const [error, setError] = useState<string | null>(null);
@@ -114,9 +115,13 @@ export const useLibrary = (user: User | null) => {
     }
     const fileList = Array.from(files);
     setError(null);
+    setUploadProgress({ current: 0, total: fileList.length, fileName: "" });
     
-    for (const file of fileList) {
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      setUploadProgress({ current: i + 1, total: fileList.length, fileName: file.name });
       setIsExtracting(true);
+      
       const isAudio = file.type.startsWith("audio/") || file.name.endsWith(".m4b");
       const isPDF = file.type === "application/pdf";
       const isEPUB = file.name.endsWith(".epub");
@@ -129,6 +134,13 @@ export const useLibrary = (user: User | null) => {
         if (isPDF) content = await extractTextFromPDF(blobUrl);
         if (isEPUB) content = await extractTextFromEPUB(blobUrl);
         if (file.type === "text/plain") content = await file.text();
+
+        // Check Firestore document size limit (approx 1MB)
+        // We'll use a safe limit of 800KB for the text content to leave room for metadata
+        const contentSize = new TextEncoder().encode(content).length;
+        if (contentSize > 800 * 1024) {
+          throw new Error(`Filen "${file.name}" är för stor för att sparas i databasen (max ~800KB text). Prova en mindre fil.`);
+        }
 
         let downloadUrl = "";
         let storagePath = "";
@@ -188,6 +200,7 @@ export const useLibrary = (user: User | null) => {
         setIsExtracting(false);
       }
     }
+    setUploadProgress(null);
   };
 
   const removeBook = async (id: string) => {
@@ -269,6 +282,7 @@ export const useLibrary = (user: User | null) => {
     books,
     filteredBooks,
     isExtracting,
+    uploadProgress,
     searchQuery,
     setSearchQuery,
     filter,
