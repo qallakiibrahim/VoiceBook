@@ -76,6 +76,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedChapterRef = useRef<number | null>(null);
+  const lastSyncRef = useRef<{ time: number, progress: number, position: number } | null>(null);
 
   // Auth listener
   useEffect(() => {
@@ -208,7 +209,7 @@ export default function App() {
     }
   }, [activeBook?.id, activeBook?.type, setCurrentChapter]);
 
-  // Update document progress
+  // Update document progress locally
   useEffect(() => {
     if (activeBook?.type === "document") {
       const chapters = getChapters(activeBook.content || "");
@@ -220,16 +221,31 @@ export default function App() {
       
       // Update local state for smooth UI
       setProgress(totalProgress);
-      
-      // Update Firestore if chapter changed OR if progress moved significantly (> 1%)
-      // to ensure the library view stays reasonably in sync
-      const lastSavedProgress = activeBook.progress || 0;
-      if (lastSavedChapterRef.current !== currentChapter || Math.abs(totalProgress - lastSavedProgress) > 1) {
-        updateBookProgress(activeBook.id, totalProgress, currentChapter);
-        lastSavedChapterRef.current = currentChapter;
-      }
     }
-  }, [currentChapter, currentCharIndex, activeBook?.id, activeBook?.type, activeBook?.content, activeBook?.progress, updateBookProgress]);
+  }, [currentChapter, currentCharIndex, activeBook?.id, activeBook?.type, activeBook?.content]);
+
+  // Debounced Firestore sync for both audio and document
+  useEffect(() => {
+    if (!activeBook || !isPlaying) {
+      // Sync one last time when stopping
+      if (lastSyncRef.current && activeBook) {
+        const { progress: lastP, position: lastPos } = lastSyncRef.current;
+        if (Math.abs(progress - lastP) > 0.1) {
+          updateBookProgress(activeBook.id, progress, activeBook.type === "document" ? currentChapter : lastPos);
+        }
+      }
+      return;
+    }
+
+    const now = Date.now();
+    const shouldSync = !lastSyncRef.current || (now - lastSyncRef.current.time > 10000);
+
+    if (shouldSync) {
+      const currentPos = activeBook.type === "document" ? currentChapter : (audioRef.current?.currentTime || 0);
+      updateBookProgress(activeBook.id, progress, currentPos);
+      lastSyncRef.current = { time: now, progress, position: currentPos };
+    }
+  }, [progress, isPlaying, activeBook?.id, updateBookProgress, currentChapter]);
 
   const handleTimeUpdate = () => {
     if (audioRef.current && activeBook?.type === "audio") {
@@ -237,7 +253,6 @@ export default function App() {
       const duration = audioRef.current.duration;
       const p = (current / duration) * 100;
       setProgress(p);
-      updateBookProgress(activeBook.id, p, current);
     }
   };
 
@@ -251,6 +266,7 @@ export default function App() {
     setView("player");
     setProgress(book.progress);
     lastSavedChapterRef.current = null;
+    lastSyncRef.current = null;
     if (book.type === "document") {
       setCurrentChapter(book.lastPosition || 0);
     }
