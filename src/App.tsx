@@ -116,9 +116,13 @@ export default function App() {
     setSearchQuery,
     filter,
     setFilter,
+    genreFilter,
+    setGenreFilter,
+    genres,
     handleFileUpload,
     removeBook,
     updateBookProgress,
+    updateBookMetadata,
     addBookmark,
     removeBookmark,
     generateSummary,
@@ -371,6 +375,9 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           filter={filter}
           setFilter={setFilter}
+          genreFilter={genreFilter}
+          setGenreFilter={setGenreFilter}
+          genres={genres}
           onAddBooks={() => fileInputRef.current?.click()}
         />
 
@@ -413,6 +420,7 @@ export default function App() {
                   addBookmark={addBookmark}
                   removeBookmark={removeBookmark}
                   generateSummary={generateSummary}
+                  updateBookMetadata={updateBookMetadata}
                   onJumpToPosition={jumpToPosition}
                   onBack={() => setView("library")}
                 />

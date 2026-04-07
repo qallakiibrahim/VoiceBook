@@ -50,8 +50,11 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onOpen, onRemove }) =>
       
       <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-sm truncate mb-1">{book.title}</h3>
-          <p className="text-xs text-gray-400 font-medium truncate">{book.author}</p>
+          <h3 className="font-bold text-sm truncate mb-0.5">{book.title}</h3>
+          <p className="text-[10px] text-gray-400 font-medium truncate mb-0.5">{book.author}</p>
+          {book.genre && (
+            <p className="text-[10px] text-spotify-green font-bold truncate">{book.genre}</p>
+          )}
         </div>
         <button 
           onClick={(e) => {

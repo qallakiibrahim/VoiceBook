@@ -80,8 +80,8 @@ export const Library: React.FC<LibraryProps> = ({
           <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
             <BookOpen className="w-10 h-10 text-gray-600" />
           </div>
-          <h3 className="text-xl font-bold mb-2">Biblioteket är tomt</h3>
-          <p className="text-gray-400 max-w-xs">Ladda upp din första ljudbok eller PDF för att börja lyssna.</p>
+          <h3 className="text-xl font-bold mb-2">Inga böcker hittades</h3>
+          <p className="text-gray-400 max-w-xs">Prova att ändra dina filter eller sökord.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">

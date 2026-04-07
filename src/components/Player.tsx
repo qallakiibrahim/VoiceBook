@@ -26,6 +26,7 @@ interface PlayerProps {
   addBookmark: (bookId: string, label: string, position: number) => void;
   removeBookmark: (bookId: string, bookmarkId: string) => void;
   generateSummary: (bookId: string) => void;
+  updateBookMetadata: (id: string, metadata: { author?: string, genre?: string, title?: string }) => void;
   onJumpToPosition: (position: number) => void;
   onBack: () => void;
 }
@@ -48,13 +49,25 @@ export const Player: React.FC<PlayerProps> = ({
   addBookmark,
   removeBookmark,
   generateSummary,
+  updateBookMetadata,
   onJumpToPosition,
   onBack
 }) => {
   const [showSavedFeedback, setShowSavedFeedback] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [activeTab, setActiveTab] = useState<"content" | "summary">("content");
+  const [isEditingMetadata, setIsEditingMetadata] = useState(false);
+  const [editData, setEditData] = useState({ 
+    title: activeBook.title, 
+    author: activeBook.author, 
+    genre: activeBook.genre || "" 
+  });
   const isTTSSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  const handleSaveMetadata = () => {
+    updateBookMetadata(activeBook.id, editData);
+    setIsEditingMetadata(false);
+  };
 
   const handleAddBookmark = () => {
     const position = activeBook.type === "document" ? currentChapter : (activeBook.lastPosition || 0);
@@ -175,10 +188,68 @@ export const Player: React.FC<PlayerProps> = ({
         </div>
 
         <div className="flex-1 space-y-8 w-full">
-          <div>
+          <div className="group relative">
             <div className="text-spotify-green font-bold text-sm tracking-widest uppercase mb-2">Nu spelas</div>
-            <h1 className="text-5xl font-black tracking-tighter mb-4">{activeBook.title}</h1>
-            <p className="text-gray-400 text-xl font-medium">{activeBook.author}</p>
+            {isEditingMetadata ? (
+              <div className="space-y-4 max-w-md">
+                <input 
+                  type="text"
+                  value={editData.title}
+                  onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-3xl font-black tracking-tighter focus:outline-none focus:border-spotify-green"
+                  placeholder="Titel"
+                />
+                <input 
+                  type="text"
+                  value={editData.author}
+                  onChange={(e) => setEditData({ ...editData, author: e.target.value })}
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-lg font-medium focus:outline-none focus:border-spotify-green"
+                  placeholder="Författare"
+                />
+                <input 
+                  type="text"
+                  value={editData.genre}
+                  onChange={(e) => setEditData({ ...editData, genre: e.target.value })}
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-2 text-sm font-bold text-spotify-green focus:outline-none focus:border-spotify-green"
+                  placeholder="Genre"
+                />
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSaveMetadata}
+                    className="px-4 py-2 bg-spotify-green text-black rounded-full font-bold text-xs"
+                  >
+                    Spara
+                  </button>
+                  <button 
+                    onClick={() => setIsEditingMetadata(false)}
+                    className="px-4 py-2 bg-white/10 text-white rounded-full font-bold text-xs"
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-5xl font-black tracking-tighter mb-2 flex items-center gap-4">
+                  {activeBook.title}
+                  <button 
+                    onClick={() => setIsEditingMetadata(true)}
+                    className="p-2 text-gray-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                    title="Redigera information"
+                  >
+                    <Zap className="w-4 h-4" />
+                  </button>
+                </h1>
+                <div className="flex items-center gap-4">
+                  <p className="text-gray-400 text-xl font-medium">{activeBook.author}</p>
+                  {activeBook.genre && (
+                    <span className="px-3 py-1 bg-spotify-green/10 text-spotify-green rounded-full text-xs font-bold">
+                      {activeBook.genre}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-6">

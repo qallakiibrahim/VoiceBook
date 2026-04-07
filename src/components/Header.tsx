@@ -9,6 +9,9 @@ interface HeaderProps {
   setSearchQuery: (query: string) => void;
   filter: "all" | "audio" | "document";
   setFilter: (filter: "all" | "audio" | "document") => void;
+  genreFilter: string;
+  setGenreFilter: (genre: string) => void;
+  genres: string[];
   onAddBooks: () => void;
 }
 
@@ -18,6 +21,9 @@ export const Header: React.FC<HeaderProps> = ({
   setSearchQuery, 
   filter, 
   setFilter,
+  genreFilter,
+  setGenreFilter,
+  genres,
   onAddBooks 
 }) => {
   return (
@@ -31,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Search & Filters */}
-      <div className="flex-1 max-w-2xl flex items-center gap-2 md:gap-4">
+      <div className="flex-1 max-w-3xl flex items-center gap-2 md:gap-4">
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-spotify-green transition-colors" />
           <input 
@@ -43,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </div>
 
-        <div className="hidden md:flex items-center bg-white/5 rounded-full p-1 border border-white/10">
+        <div className="hidden lg:flex items-center bg-white/5 rounded-full p-1 border border-white/10">
           <button 
             onClick={() => setFilter("all")}
             className={cn(
@@ -74,6 +80,19 @@ export const Header: React.FC<HeaderProps> = ({
             Text
           </button>
         </div>
+
+        {genres.length > 0 && (
+          <select 
+            value={genreFilter}
+            onChange={(e) => setGenreFilter(e.target.value)}
+            className="hidden md:block bg-white/5 border border-white/10 rounded-full px-4 py-2 text-xs font-bold focus:outline-none focus:border-spotify-green/50 transition-all cursor-pointer"
+          >
+            <option value="all" className="bg-dark-bg">Alla genrer</option>
+            {genres.map(genre => (
+              <option key={genre} value={genre} className="bg-dark-bg">{genre}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Actions & User */}

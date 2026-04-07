@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Book, Bookmark } from "../types";
 import { COVER_COLORS } from "../constants";
 import { extractTextFromPDF, extractTextFromEPUB } from "../lib/extraction";
-import { summarizeBook } from "../services/geminiService";
+import { summarizeBook, extractMetadata } from "../services/geminiService";
 import { 
   db, 
   collection, 
@@ -79,6 +79,7 @@ export const useLibrary = (user: User | null) => {
   const [uploadProgress, setUploadProgress] = useState<{ current: number, total: number, fileName: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "audio" | "document">("all");
+  const [genreFilter, setGenreFilter] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
 
   // Load books from Firestore when user changes
@@ -172,13 +173,17 @@ export const useLibrary = (user: User | null) => {
           storagePath = null as any;
         }
 
-        // 3. Save metadata to Firestore
+        // 3. Extract metadata with Gemini
+        const metadata = await extractMetadata(file.name.replace(/\.[^/.]+$/, ""), content);
+
+        // 4. Save metadata to Firestore
         const bookId = Math.random().toString(36).substr(2, 9);
-        const newBook: any = {
+        const newBook: Book = {
           id: bookId,
           userId: user.uid,
           title: file.name.replace(/\.[^/.]+$/, ""),
-          author: "Okänd författare",
+          author: metadata.author,
+          genre: metadata.genre,
           type: isAudio ? "audio" : "document",
           format: file.name.split(".").pop()?.toUpperCase() || "FIL",
           url: downloadUrl,
@@ -232,6 +237,17 @@ export const useLibrary = (user: User | null) => {
       handleFirestoreError(err, OperationType.UPDATE, path);
     }
   }, [user]);
+
+  const updateBookMetadata = async (id: string, metadata: { author?: string, genre?: string, title?: string }) => {
+    if (!user) return;
+    const path = `users/${user.uid}/books/${id}`;
+    try {
+      const bookRef = doc(db, "users", user.uid, "books", id);
+      await updateDoc(bookRef, metadata);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, path);
+    }
+  };
 
   const addBookmark = async (bookId: string, label: string, position: number) => {
     if (!user) return;
@@ -289,23 +305,31 @@ export const useLibrary = (user: User | null) => {
   };
 
   const filteredBooks = books.filter(b => {
-    const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filter === "all" || b.type === filter;
-    return matchesSearch && matchesFilter;
+    const matchesSearch = b.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         b.author.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = filter === "all" || b.type === filter;
+    const matchesGenre = genreFilter === "all" || b.genre === genreFilter;
+    return matchesSearch && matchesType && matchesGenre;
   });
+
+  const genres = Array.from(new Set(books.map(b => b.genre).filter(Boolean))) as string[];
 
   return {
     books,
     filteredBooks,
+    genres,
     isExtracting,
     uploadProgress,
     searchQuery,
     setSearchQuery,
     filter,
     setFilter,
+    genreFilter,
+    setGenreFilter,
     handleFileUpload,
     removeBook,
     updateBookProgress,
+    updateBookMetadata,
     addBookmark,
     removeBookmark,
     generateSummary,
