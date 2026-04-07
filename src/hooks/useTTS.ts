@@ -51,6 +51,13 @@ export const useTTS = (activeBook: Book | null, isPlaying: boolean, setIsPlaying
     
     window.speechSynthesis.cancel();
     const chapters = getChapters(activeBook.content || "");
+    
+    if (chapters.length === 0 || (chapters.length === 1 && chapters[0].trim().length === 0)) {
+      console.warn("Book has no content to play.");
+      setIsPlaying(false);
+      return;
+    }
+
     const text = chapters[index];
     
     if (!text || text.trim().length === 0) {

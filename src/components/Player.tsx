@@ -262,14 +262,25 @@ export const Player: React.FC<PlayerProps> = ({
                 className="text-gray-300 text-lg leading-relaxed overflow-y-auto custom-scrollbar pr-2 h-full"
               >
                 {(() => {
-                  const text = getChapters(activeBook.content || "")[currentChapter] || "";
-                  if (!text) return "Ingen text kunde extraheras från detta dokument.";
+                  const chapters = getChapters(activeBook.content || "");
+                  const text = chapters[currentChapter] || "";
+                  if (!text || text.trim().length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                        <FileText className="w-12 h-12 text-gray-600 mb-4" />
+                        <p className="text-gray-500">Ingen text kunde hittas i detta kapitel.</p>
+                        <p className="text-xs text-gray-600 mt-2">Detta kan bero på att boken laddades upp med en tidigare begränsning eller att PDF:en endast innehåller bilder.</p>
+                      </div>
+                    );
+                  }
                   
-                  let nextSpace = text.indexOf(' ', currentCharIndex);
+                  // Ensure index is within bounds
+                  const safeIndex = Math.min(Math.max(0, currentCharIndex), text.length);
+                  let nextSpace = text.indexOf(' ', safeIndex);
                   if (nextSpace === -1) nextSpace = text.length;
                   
-                  const before = text.substring(0, currentCharIndex);
-                  const current = text.substring(currentCharIndex, nextSpace);
+                  const before = text.substring(0, safeIndex);
+                  const current = text.substring(safeIndex, nextSpace);
                   const after = text.substring(nextSpace);
                   
                   return (
