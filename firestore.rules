@@ -21,6 +21,7 @@ service cloud.firestore {
     //   - userId: string (required) - Owner's UID
     //   - title: string (required) - Book title
     //   - author: string (optional) - Book author
+    //   - genre: string (optional) - Book genre
     //   - type: string (required, enum: ["audio", "document"]) - Book type
     //   - format: string (optional) - File format (e.g., PDF, MP3)
     //   - url: string (optional) - URL to the book file
@@ -85,12 +86,13 @@ service cloud.firestore {
     }
 
     function isValidBook(data) {
-      return hasOnlyAllowedFields(['id', 'userId', 'title', 'author', 'type', 'format', 'url', 'storagePath', 'coverColor', 'progress', 'lastPosition', 'content', 'summary', 'createdAt', 'bookmarks']) &&
+      return hasOnlyAllowedFields(['id', 'userId', 'title', 'author', 'genre', 'type', 'format', 'url', 'storagePath', 'coverColor', 'progress', 'lastPosition', 'content', 'summary', 'createdAt', 'bookmarks']) &&
              data.id is string && data.id.size() > 0 &&
              data.userId == request.auth.uid &&
              data.title is string && data.title.size() > 0 && data.title.size() < 255 &&
              data.type in ['audio', 'document'] &&
              (!('author' in data) || data.author == null || (data.author is string && data.author.size() < 255)) &&
+             (!('genre' in data) || data.genre == null || (data.genre is string && data.genre.size() < 100)) &&
              (!('url' in data) || data.url == null || isValidUrl(data.url)) &&
              (!('storagePath' in data) || data.storagePath == null || data.storagePath is string) &&
              (!('coverColor' in data) || data.coverColor == null || data.coverColor is string) &&

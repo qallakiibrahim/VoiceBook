@@ -49,11 +49,11 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </div>
 
-        <div className="hidden lg:flex items-center bg-white/5 rounded-full p-1 border border-white/10">
+        <div className="hidden md:flex items-center bg-white/5 rounded-full p-1 border border-white/10 shrink-0">
           <button 
             onClick={() => setFilter("all")}
             className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-bold transition-all",
+              "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all",
               filter === "all" ? "bg-white text-black" : "text-gray-400 hover:text-white"
             )}
           >
@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button 
             onClick={() => setFilter("audio")}
             className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2",
+              "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5",
               filter === "audio" ? "bg-white text-black" : "text-gray-400 hover:text-white"
             )}
           >
@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button 
             onClick={() => setFilter("document")}
             className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2",
+              "px-3 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5",
               filter === "document" ? "bg-white text-black" : "text-gray-400 hover:text-white"
             )}
           >
@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
           <select 
             value={genreFilter}
             onChange={(e) => setGenreFilter(e.target.value)}
-            className="hidden md:block bg-white/5 border border-white/10 rounded-full px-4 py-2 text-xs font-bold focus:outline-none focus:border-spotify-green/50 transition-all cursor-pointer"
+            className="bg-white/5 border border-white/10 rounded-full px-3 py-2 text-[10px] font-bold focus:outline-none focus:border-spotify-green/50 transition-all cursor-pointer max-w-[100px] sm:max-w-none"
           >
             <option value="all" className="bg-dark-bg">Alla genrer</option>
             {genres.map(genre => (

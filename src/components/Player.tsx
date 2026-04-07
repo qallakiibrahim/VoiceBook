@@ -64,6 +64,15 @@ export const Player: React.FC<PlayerProps> = ({
   });
   const isTTSSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
+  // Sync edit data when active book changes
+  React.useEffect(() => {
+    setEditData({
+      title: activeBook.title,
+      author: activeBook.author,
+      genre: activeBook.genre || ""
+    });
+  }, [activeBook.id, activeBook.title, activeBook.author, activeBook.genre]);
+
   const handleSaveMetadata = () => {
     updateBookMetadata(activeBook.id, editData);
     setIsEditingMetadata(false);
@@ -230,16 +239,19 @@ export const Player: React.FC<PlayerProps> = ({
               </div>
             ) : (
               <>
-                <h1 className="text-5xl font-black tracking-tighter mb-2 flex items-center gap-4">
-                  {activeBook.title}
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="text-5xl font-black tracking-tighter mb-2 leading-tight">
+                    {activeBook.title}
+                  </h1>
                   <button 
                     onClick={() => setIsEditingMetadata(true)}
-                    className="p-2 text-gray-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                    className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-[10px] font-bold transition-all"
                     title="Redigera information"
                   >
-                    <Zap className="w-4 h-4" />
+                    <Zap className="w-3 h-3 text-spotify-green" />
+                    Redigera
                   </button>
-                </h1>
+                </div>
                 <div className="flex items-center gap-4">
                   <p className="text-gray-400 text-xl font-medium">{activeBook.author}</p>
                   {activeBook.genre && (
